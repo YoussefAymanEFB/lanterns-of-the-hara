@@ -1,0 +1,3 @@
+# Local tools config and the generated claude.ai build
+.claude/
+artifact.html
