@@ -97,9 +97,13 @@ Analytics events: `episode_start`, `episode_resume`, `choice`, `give` (with stat
 - **Daily unlock:** every episode opens at Fajr, but that isn't wired yet, because Day 1 is the only episode so far.
 - **Fonts:** load from Google Fonts. For production, host them alongside the game.
 
-## Shareable link
+## Shareable links
 
-`artifact.html` is generated from `index.html` and used to publish the prototype as a claude.ai link:
+**Public link (any phone, no sign-in):** https://youssefaymanefb.github.io/lanterns-of-the-hara/
+
+It is hosted on GitHub Pages from the `main` branch of [YoussefAymanEFB/lanterns-of-the-hara](https://github.com/YoussefAymanEFB/lanterns-of-the-hara). Anyone with the link can play it, and the repository is public. The page asks search engines not to list it. To update the live game, commit and push to `main`. The site refreshes in about a minute.
+
+**claude.ai link (private):** `artifact.html` is generated from `index.html` and used to publish the prototype as a claude.ai link:
 
 ```powershell
 node tools/build-artifact.js
