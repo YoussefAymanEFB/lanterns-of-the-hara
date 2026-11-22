@@ -2,8 +2,8 @@
   فوانيس الحارة · story engine
   ------------------------------------------------------------
   Reads an episode file (episodes/epNN.js), draws each node's place, reveals its lines,
-  shows story choices and the one donation choice, remembers flags and the player's path,
-  and ends with the lantern + recap screen.
+  shows the speaker's face, story choices and the donation choices, remembers flags and the
+  player's path, and ends with the lantern + recap screen.
 
   Player text (name) is only ever written with textContent.
 */
@@ -12,18 +12,22 @@
   var H = window.HARA = window.HARA || {};
   var art = H.art, audio = H.audio, COH = window.COH;
 
+  // face: portrait in assets/faces/. Characters without one speak with just their name.
   var CAST = {
-    saber: { name: "عم صابر", color: "#FFD27A" },
-    nemat: { name: "الحاجة نعمات", color: "#F4AFC0" },
-    hassan: { name: "عم حسن", color: "#A6DDB0" },
-    mama: { name: "ماما", color: "#F7C59F" },
+    saber: { name: "عم صابر", color: "#FFD27A", face: "saber" },
+    nemat: { name: "الحاجة نعمات", color: "#F4AFC0", face: "nemat" },
+    hassan: { name: "عم حسن", color: "#A6DDB0", face: "hassan" },
+    mama: { name: "ماما", color: "#F7C59F", face: "mama" },
+    omyoussef: { name: "أم يوسف", color: "#B9C8FF", face: "omyoussef" },
+    youssef: { name: "يوسف", color: "#FF9F8A", face: "youssef" },
+    malak: { name: "ملك", color: "#FFB36B", face: "malak" },
+    rizq: { name: "المعلم رزق", color: "#D9C38A", face: "rizq" },
     sheikh: { name: "الشيخ عبد الله", color: "#CFE3FF" },
-    kids: { name: "يوسف وملك", color: "#FFB36B" },
-    malak: { name: "ملك", color: "#FFB36B" },
     abuyasser: { name: "أبو ياسر", color: "#A9E4EA" }
   };
+  var FACES = ["saber", "saber_smile", "nemat", "hassan", "mama", "omyoussef", "youssef", "malak", "rizq"];
   var TOTAL = 30;
-  var STORE_KEY = "hara.v1";
+  var STORE_KEY = "hara.v2";
   var SAMPLE_COUNTER = 12430;
 
   /* ---------------- state ---------------- */
@@ -105,6 +109,7 @@
     '    <button class="icon-btn" id="muteBtn" type="button"></button>' +
     '  </div>' +
     '  <div class="place" id="placeChip"></div>' +
+    '  <div class="face" id="face" aria-hidden="true"><img id="faceImg" alt=""></div>' +
     '</div>' +
     '<div class="panel" id="panel" tabindex="0" aria-label="الحكاية. اضغط للمتابعة">' +
     '  <div class="speaker" id="speaker"></div>' +
@@ -118,8 +123,10 @@
 
   var stage = $("stage"), artEl = $("art"), panel = $("panel"), speaker = $("speaker"), textEl = $("text"),
       choicesEl = $("choices"), hint = $("hint"), overlay = $("overlay"), sheetWrap = $("sheetWrap"),
-      placeChip = $("placeChip"), hudClock = $("hudClock"), hudEp = $("hudEp"), muteBtn = $("muteBtn"), homeBtn = $("homeBtn");
+      placeChip = $("placeChip"), hudClock = $("hudClock"), hudEp = $("hudEp"), muteBtn = $("muteBtn"), homeBtn = $("homeBtn"),
+      faceEl = $("face"), faceImg = $("faceImg");
   homeBtn.innerHTML = ICON_HOME;
+  art.attach(stage);
 
   function renderMute() {
     muteBtn.innerHTML = S.prefs.muted ? ICON_MUTE : ICON_SOUND;
@@ -146,13 +153,13 @@
   }
 
   /* ---------------- scene ---------------- */
-  var sceneKey = "", curTime = "";
-  function setScene(place, time, show) {
-    var key = place + "|" + time + "|" + (show || []).join(",");
+  var sceneKey = "";
+  function setScene(place, time) {
+    var key = place + "|" + time;
     if (key === sceneKey) return;
     sceneKey = key;
     var layer = h("div", { "class": "layer" });
-    layer.appendChild(art.scene(place, time, show || []));
+    layer.appendChild(art.scene(place, time));
     artEl.appendChild(layer);
     requestAnimationFrame(function () { requestAnimationFrame(function () { layer.classList.add("on"); }); });
     var olds = Array.prototype.slice.call(artEl.children, 0, -1);
@@ -162,7 +169,18 @@
       placeChip.textContent = nm;
       placeChip.classList.remove("in"); void placeChip.offsetWidth; placeChip.classList.add("in");
     }
-    if (time !== curTime) { curTime = time; audio.time(time); }
+    audio.scene(place, time);
+  }
+  var faceKey = "";
+  function setFace(key) {
+    if (!key) { faceEl.classList.remove("on"); faceKey = ""; return; }
+    if (key !== faceKey) {
+      faceKey = key;
+      faceEl.classList.remove("on");
+      faceImg.src = "assets/faces/" + key + ".webp";
+      void faceEl.offsetWidth;
+    }
+    faceEl.classList.add("on");
   }
   function setClock(txt) { hudClock.textContent = txt || ""; hudClock.hidden = !txt; }
 
@@ -172,11 +190,12 @@
   function begin(epId, resume) {
     var ep = H.episodes[epId];
     if (!ep) return;
-    if (!resume || !S.run || S.run.ep !== epId) S.run = { ep: epId, node: ep.start, flags: {}, log: [], gift: null };
+    if (!resume || !S.run || S.run.ep !== epId || !ep.nodes[S.run.node]) S.run = { ep: epId, node: ep.start, flags: {}, log: [], gifts: [] };
+    S.run.gifts = S.run.gifts || [];
     save();
     cur.ep = ep;
     hudEp.textContent = "الحلقة " + ar(ep.id);
-    sceneKey = ""; curTime = "";
+    sceneKey = "";
     hideOverlay();
     COH.track(resume ? "episode_resume" : "episode_start", { episode: epId });
     cur.mode = "lines";
@@ -196,7 +215,7 @@
     cur.mode = "lines";
     choicesEl.textContent = "";
     app.classList.remove("choosing", "giving");
-    setScene(node.place, node.time, node.show);
+    setScene(node.place, node.time);
     setClock(node.clock);
     advance();
   }
@@ -220,9 +239,10 @@
 
   function showLine(l) {
     if (typeof l === "string") l = { t: l };
-    if (l.go) setScene(l.go.place || cur.node.place, l.go.time || cur.node.time, l.go.show || cur.node.show);
+    if (l.go) setScene(l.go.place || cur.node.place, l.go.time || cur.node.time);
     if (l.fx) doFx(l.fx);
     var who = l.who && CAST[l.who];
+    setFace(who ? (l.face || who.face) : null);
     speaker.textContent = who ? who.name : "";
     speaker.style.color = who ? who.color : "";
     textEl.className = "text" + (who ? " say" : "");
@@ -256,14 +276,20 @@
   function doFx(fx) {
     if (fx === "cannon") {
       audio.cannon();
+      art.event("cannon");
       COH.haptic("heavy");
       stage.classList.remove("shake"); void stage.offsetWidth; stage.classList.add("shake");
-    } else audio.fx(fx);
+      return;
+    }
+    audio.fx(fx);
+    art.event(fx); // ball, kick, catch, hush: drawn on the picture
+    if (fx === "ball" || fx === "kick") COH.haptic("light");
   }
 
   function showChoices(ch, isGive) {
     cur.mode = isGive ? "give" : "choice";
     hint.hidden = true;
+    setFace(null);
     choicesEl.textContent = "";
     app.classList.add(isGive ? "giving" : "choosing"); // make room so every option is visible without scrolling
     choicesEl.appendChild(h("p", { "class": "prompt", text: T(ch.prompt) }));
@@ -305,7 +331,7 @@
     cur.mode = "busy";
     COH.haptic("heavy");
     function proceed(status) {
-      S.run.gift = { key: o.key, price: o.price || 0, status: status };
+      S.run.gifts.push({ key: o.key, price: o.price || 0, status: status, t: o.log || o.t });
       S.run.flags["gave_" + o.key] = true;
       applyOpt(o);
       COH.track("give", { episode: cur.ep.id, option: o.key, amount: o.price || 0, status: status });
@@ -369,29 +395,40 @@
 
   /* ---------------- end of episode ---------------- */
   function endEpisode() {
-    var ep = cur.ep, run = S.run, gift = run.gift, log = run.log.slice();
+    var ep = cur.ep, run = S.run, gifts = (run.gifts || []).slice(), log = run.log.slice();
+    var total = gifts.reduce(function (a, g) { return a + (g.status === "paid" ? g.price : 0); }, 0);
     cur.mode = "idle";
-    S.done[ep.id] = { key: gift ? gift.key : null, price: gift ? gift.price : 0, at: Date.now() };
+    setFace(null);
+    S.done[ep.id] = { gifts: gifts.map(function (g) { return g.key; }), total: total, at: Date.now() };
     S.run = null;
     save();
-    COH.track("episode_complete", { episode: ep.id, option: gift ? gift.key : null });
-    audio.time("end");
-    setTimeout(function () { audio.chime(); }, 500);
-    showEnd(ep, log, gift);
+    COH.track("episode_complete", { episode: ep.id, options: gifts.map(function (g) { return g.key; }), total: total });
+    audio.scene("hub", "night");
+    setTimeout(function () { audio.chime(); }, 400);
+    setTimeout(function () { audio.music("end"); }, 1600);
+    showEnd(ep, log, gifts, total);
   }
 
-  function showEnd(ep, log, gift) {
-    var free = !gift || !gift.price;
-    var lantern = svgFrom(LANTERN_SVG, "end-lantern");
+  function showEnd(ep, log, gifts, total) {
+    var free = total === 0;
+    var hero = h("div", { "class": "end-hero" }, [
+      h("div", { "class": "end-face" }, [h("img", { src: "assets/faces/" + (ep.endFace || "saber_smile") + ".webp", alt: "" })]),
+      svgFrom(LANTERN_SVG, "end-lantern")
+    ]);
     var recap = h("ol", { "class": "recap" }, log.map(function (l) { return h("li", { text: T(l) }); }));
+    var giftList = h("ul", { "class": "gift-list" }, gifts.map(function (g) {
+      return h("li", null, [T(g.t), " · ", h("b", { text: g.price && g.status === "paid" ? ar(g.price) + " جنيه" : "ببلاش" })]);
+    }));
     var giftCard = free
       ? h("div", { "class": "gift" }, [
-          h("p", { "class": "gift-main", text: T("{اخترت|اخترتي} تنادي الحارة لعم صابر.") }),
-          h("p", { "class": "gift-sub", text: "الدالّ على الخير كفاعله. ابعت الحكاية لحد يكمّلها." })
+          h("p", { "class": "gift-main", text: T("{اخترت|اخترتي} تنادي الحارة، مرتين.") }),
+          h("p", { "class": "gift-sub", text: T("الدالّ على الخير كفاعله. {ابعت|ابعتي} الحكاية لحد يكمّلها.") }),
+          giftList
         ])
       : h("div", { "class": "gift" }, [
-          h("p", { "class": "gift-main", text: "تبرعك: " + ar(gift.price) + " جنيه" }),
-          h("p", { "class": "gift-sub", text: T("راح لحملات EFB في رمضان. الرقم ده بيظهر {ليك انت|ليكي انتي} بس، ومش بيظهر في المشاركة.") })
+          h("p", { "class": "gift-main", text: "تبرعاتك النهارده: " + ar(total) + " جنيه" }),
+          h("p", { "class": "gift-sub", text: T("راحت لحملات EFB في رمضان. الرقم ده بيظهر {ليك انت|ليكي انتي} بس، ومش بيظهر في المشاركة.") }),
+          giftList
         ]);
     var shareBtn = h("button", {
       type: "button", "class": free ? "btn primary" : "btn", text: "شارك الحكاية",
@@ -401,12 +438,13 @@
       }
     });
     var teaser = h("div", { "class": "teaser" }, [
+      ep.next.face ? h("div", { "class": "teaser-face" }, [h("img", { src: "assets/faces/" + ep.next.face + ".webp", alt: "" })]) : null,
       h("p", { "class": "teaser-k", text: "بكرة · الحلقة " + ar(ep.next.id) }),
       h("p", { "class": "teaser-t", text: ep.next.title }),
       h("p", { "class": "teaser-b", text: ep.next.teaser })
     ]);
     var body = h("div", { "class": "end" }, [
-      lantern,
+      hero,
       h("h2", { "class": "end-title", text: ep.endTitle }),
       h("div", { "class": "end-sec" }, [h("p", { "class": "end-k", text: "حكايتك النهارده" }), recap]),
       giftCard,
@@ -426,8 +464,11 @@
   }
 
   /* ---------------- screens ---------------- */
+  var hubScene = null;
   function showOverlay(cls, kids) {
+    if (hubScene && cls !== "screen-hub") { hubScene.destroy(); hubScene = null; }
     overlay.className = "overlay " + cls;
+    overlay.style.backgroundImage = "";
     overlay.textContent = "";
     kids.forEach(function (k) { overlay.appendChild(k); });
     overlay.hidden = false;
@@ -435,16 +476,22 @@
     var f = overlay.querySelector("button, input");
     focusEl(f);
   }
-  function hideOverlay() { overlay.hidden = true; overlay.textContent = ""; }
+  function hideOverlay() {
+    if (hubScene) { hubScene.destroy(); hubScene = null; }
+    overlay.hidden = true; overlay.textContent = ""; overlay.style.backgroundImage = "";
+  }
 
   function showHub() {
     cur.mode = "idle";
     app.classList.remove("choosing", "giving");
-    audio.time("hub");
+    setFace(null);
+    audio.scene("hub", "night");
     var ep = H.episodes[1];
     var done = !!S.done[1], inProg = S.run && S.run.ep === 1;
     var hubArt = h("div", { "class": "hub-art" });
-    hubArt.appendChild(art.hub(function (i) { return !!S.done[i + 1]; }, done ? -1 : 0));
+    if (hubScene) hubScene.destroy();
+    hubScene = art.hub(hubArt);
+    hubArt.appendChild(hubScene.el);
     var card = h("button", { type: "button", "class": "ep-card", onclick: function () { startFlow(1); } }, [
       svgFrom(LANTERN_SVG, "ep-card-lan" + (done ? " lit" : "")),
       h("span", { "class": "ep-card-main" }, [
@@ -475,6 +522,8 @@
   function startFlow(epId) {
     audio.init();
     audio.setMuted(S.prefs.muted);
+    art.preload();
+    FACES.forEach(function (k) { var i = new Image(); i.src = "assets/faces/" + k + ".webp"; });
     var ep = H.episodes[epId];
     var resume = S.run && S.run.ep === epId;
     var steps = [];
@@ -544,8 +593,10 @@
       h("h2", { "class": "tc-title", text: ep.title })
     ]);
     showOverlay("screen-title", [card]);
+    if (ep.cover) overlay.style.backgroundImage = "linear-gradient(rgba(10,9,32,.6), rgba(10,9,32,.94) 75%), url(assets/scenes/" + ep.cover + ".webp)";
+    audio.music("title");
     focusEl(card);
-    setTimeout(go, 3400);
+    setTimeout(go, 4200);
   }
 
   /* ---------------- mocks for running outside COH ---------------- */

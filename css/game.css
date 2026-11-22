@@ -51,8 +51,8 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2
 }
 
 /* ---------- stage (the picture) ---------- */
-.stage { position: relative; flex: 0 0 auto; height: 56%; min-height: 200px; overflow: hidden; background: var(--ink); transition: height 0.6s ease; }
-#app.choosing .stage { height: 46%; }
+.stage { position: relative; flex: 0 0 auto; height: 60%; min-height: 200px; overflow: hidden; background: var(--ink); transition: height 0.6s ease; }
+#app.choosing .stage { height: 48%; }
 #app.giving .stage { height: 34%; }
 #app.giving .opt { padding-top: 11px; padding-bottom: 11px; }
 @media (max-height: 700px) {
@@ -61,10 +61,59 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2
   #app.giving .stage { height: 26%; }
 }
 .art, .layer { position: absolute; inset: 0; }
-.layer { opacity: 0; transition: opacity 1.1s ease; will-change: opacity, transform; }
-.layer.on { opacity: 1; animation: push 16s ease-out both; }
-.layer svg { display: block; width: 100%; height: 100%; }
-.stage::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 90px; background: linear-gradient(to bottom, rgba(10, 9, 32, 0), var(--ink)); pointer-events: none; z-index: 2; }
+.layer { opacity: 0; transition: opacity 1.1s ease; will-change: opacity; }
+.layer.on { opacity: 1; }
+.stage::before { content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none; background: radial-gradient(130% 95% at 50% 42%, rgba(0, 0, 0, 0) 58%, rgba(5, 4, 20, 0.5) 100%); }
+.stage::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 70px; background: linear-gradient(to bottom, rgba(10, 9, 32, 0), var(--ink)); pointer-events: none; z-index: 2; }
+
+/* ---------- living scenes (js/scenes.js) ---------- */
+.scene { position: absolute; inset: 0; overflow: hidden; }
+.world { position: absolute; animation: kb 26s ease-in-out infinite alternate; will-change: transform; transition: filter 1.4s ease; }
+.paint { position: absolute; inset: 0; width: 100%; height: 100%; display: block; user-select: none; -webkit-user-drag: none; }
+.tint { position: absolute; inset: 0; pointer-events: none; }
+.tint-night { background: linear-gradient(to bottom, rgba(16, 20, 78, 0.78), rgba(24, 16, 56, 0.6)); mix-blend-mode: multiply; }
+.lights, .fxl { position: absolute; inset: 0; pointer-events: none; }
+.glow {
+  position: absolute; transform: translate(-50%, -50%); border-radius: 50%; mix-blend-mode: screen;
+  background: radial-gradient(circle, rgba(var(--c), 0.6) 0%, rgba(var(--c), 0.24) 34%, rgba(var(--c), 0) 70%);
+  animation: flick 3s ease-in-out infinite;
+}
+.lights.boost .glow { background: radial-gradient(circle, rgba(var(--c), 0.85) 0%, rgba(var(--c), 0.36) 36%, rgba(var(--c), 0) 72%); }
+.g-fire { animation-name: fire; }
+.g-bulb { animation-name: tw; }
+.g-sun { animation-name: breathe; opacity: 0.55; }
+.g-lamp { animation-name: breathe; }
+.glow.dbg { outline: 1px dashed #3ff; }
+.mote { position: absolute; border-radius: 50%; background: rgba(255, 228, 170, 0.8); box-shadow: 0 0 6px rgba(255, 214, 150, 0.9); animation: mote 10s linear infinite; }
+.mote.flour { background: rgba(255, 255, 255, 0.85); box-shadow: 0 0 3px rgba(255, 255, 255, 0.6); }
+.puff { position: absolute; border-radius: 50%; background: radial-gradient(circle, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0) 66%); animation: puff 4s ease-out infinite; }
+.puff.smoke { background: radial-gradient(circle, rgba(190, 190, 205, 0.36), rgba(190, 190, 205, 0) 66%); }
+.ember { position: absolute; width: 3px; height: 3px; border-radius: 50%; background: #FFB45E; box-shadow: 0 0 6px #FF8A3A; animation: ember 2s ease-out infinite; }
+.star { position: absolute; width: 2px; height: 2px; border-radius: 50%; background: #fff; box-shadow: 0 0 4px #fff; animation: tw 3s ease-in-out infinite; }
+.bird { position: absolute; aspect-ratio: 2 / 1; }
+.bird svg { display: block; width: 100%; height: 100%; }
+.bird .wing { transform-box: fill-box; transform-origin: 100% 100%; animation: flap 0.3s ease-in-out infinite alternate; }
+.bird .w2 { transform-origin: 0% 100%; }
+.walkers { position: absolute; inset: 0; z-index: 1; overflow: hidden; pointer-events: none; }
+.walker { position: absolute; bottom: -16%; aspect-ratio: 1 / 2.2; color: #07061A; opacity: 0.8; filter: blur(3px); }
+.walker svg { display: block; width: 100%; height: 100%; animation: bob 0.5s ease-in-out infinite; }
+.bulb-dim { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; animation: bulbdim 7s linear infinite; }
+.ball { position: absolute; width: 26%; aspect-ratio: 1; transform: translate(-50%, -50%) scale(0.12); }
+.ball svg { display: block; width: 100%; height: 100%; filter: drop-shadow(0 10px 12px rgba(0, 0, 0, 0.45)); }
+.flash { position: absolute; inset: 0; z-index: 3; pointer-events: none; background: radial-gradient(circle at 50% 40%, rgba(255, 232, 186, 0.95), rgba(255, 170, 80, 0.5) 50%, rgba(255, 140, 60, 0) 82%); }
+.scene.hush .world { filter: brightness(0.84) saturate(0.88); }
+.scene.hush .glow { animation-play-state: paused; }
+
+/* ---------- speaker portrait ---------- */
+.face {
+  position: absolute; bottom: 12px; right: max(14px, env(safe-area-inset-right, 0px)); z-index: 4;
+  width: 92px; height: 92px; border-radius: 22px; overflow: hidden; background: #1B2A33;
+  border: 2px solid rgba(243, 180, 63, 0.9); box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6), 0 0 0 4px rgba(10, 9, 32, 0.55);
+  opacity: 0; transform: translateY(10px) scale(0.92); transition: opacity 0.25s ease, transform 0.3s ease; pointer-events: none;
+}
+.face.on { opacity: 1; transform: none; }
+.face img { display: block; width: 100%; height: 100%; object-fit: cover; }
+#app.giving .face, #app.choosing .face { opacity: 0; }
 .stage.shake { animation: shake 0.7s ease; }
 
 .hud {
@@ -87,7 +136,7 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2
 }
 .icon-btn svg { width: 18px; height: 18px; }
 .place {
-  position: absolute; bottom: 22px; right: max(18px, env(safe-area-inset-right, 0px)); z-index: 3;
+  position: absolute; top: calc(env(safe-area-inset-top, 0px) + 56px); right: max(18px, env(safe-area-inset-right, 0px)); z-index: 3;
   font-family: var(--f-title); font-size: 1.5rem; line-height: 1.2; color: var(--gold);
   text-shadow: 0 2px 14px rgba(0, 0, 0, 0.85);
 }
@@ -131,8 +180,8 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2
 /* ---------- overlay screens ---------- */
 .overlay { position: absolute; inset: 0; z-index: 10; display: flex; flex-direction: column; overflow-y: auto; background: var(--ink); animation: fadeIn 0.45s ease both; }
 
-.hub-art { position: relative; flex: 0 0 auto; height: 44%; min-height: 230px; }
-.hub-art svg { display: block; width: 100%; height: 100%; }
+.hub-art { position: relative; flex: 0 0 auto; height: 46%; min-height: 240px; overflow: hidden; }
+.hub-art .scene { z-index: 0; }
 .hub-art::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 70px; background: linear-gradient(to bottom, rgba(10, 9, 32, 0), var(--ink)); }
 .hub-body { display: grid; gap: 14px; padding: 0 22px calc(env(safe-area-inset-bottom, 0px) + 28px); }
 .hub-k { margin: 0; font-size: 0.8rem; color: var(--faint); }
@@ -179,7 +228,7 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2
 .btn.ghost { background: none; }
 .btn:disabled { opacity: 0.4; cursor: default; }
 
-.screen-title { justify-content: center; align-items: center; background: radial-gradient(70% 50% at 50% 40%, #2A2160 0%, var(--ink) 70%); }
+.screen-title { justify-content: center; align-items: center; background-color: var(--ink); background-size: cover; background-position: center; }
 .title-card { display: grid; justify-items: center; gap: 6px; padding: 40px 24px; text-align: center; cursor: pointer; outline: none; }
 .tc-lantern svg { display: block; width: 70px; height: 124px; margin-bottom: 10px; }
 .tc-lantern .lan-glass { fill: #FFC75E; animation: glassOn 1.4s ease both 0.3s; }
@@ -190,6 +239,16 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2
 
 .end { display: grid; gap: 18px; padding: 30px 22px calc(env(safe-area-inset-bottom, 0px) + 30px); }
 .end-lantern { justify-self: center; }
+.end-hero { position: relative; justify-self: center; width: 150px; height: 150px; }
+.end-face { position: absolute; inset: 14px 14px 0; border-radius: 50%; overflow: hidden; border: 3px solid var(--gold); box-shadow: 0 0 0 6px rgba(243, 180, 63, 0.15), 0 0 60px rgba(243, 180, 63, 0.45); animation: rise 1s ease both 0.2s; }
+.end-face img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.end-hero .end-lantern { position: absolute; left: -14px; bottom: -8px; }
+.end-hero .end-lantern svg { width: 46px; height: 81px; }
+.gift-list { margin: 4px 0 0; padding: 0; list-style: none; display: grid; gap: 4px; font-size: 0.92rem; color: var(--muted); }
+.gift-list b { color: var(--gold-2); font-weight: 600; }
+.teaser { grid-template-columns: 64px 1fr; column-gap: 14px; align-items: center; }
+.teaser-face { grid-row: span 3; width: 64px; height: 64px; border-radius: 16px; overflow: hidden; border: 1px solid var(--line); }
+.teaser-face img { display: block; width: 100%; height: 100%; object-fit: cover; filter: saturate(0.85); }
 .end-lantern svg { display: block; width: 74px; height: 130px; }
 .end-lantern .lan-glass { animation: glassOn 1.6s ease both 0.4s; }
 .end-lantern .lan-glow { animation: glowOn 2s ease both 0.4s; }
@@ -235,7 +294,16 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2
 .bob { animation: bob 1.1s ease-in-out infinite; }
 .steam { transform-box: fill-box; transform-origin: center; animation: steam 3.2s ease-in infinite; }
 
-@keyframes push { from { transform: scale(1.07); } to { transform: scale(1); } }
+@keyframes kb { from { transform: scale(1); } to { transform: scale(1.07); } }
+@keyframes flick { 0%, 100% { opacity: 0.85; } 18% { opacity: 0.7; } 33% { opacity: 0.95; } 52% { opacity: 0.76; } 70% { opacity: 1; } 86% { opacity: 0.8; } }
+@keyframes fire { 0%, 100% { opacity: 0.8; transform: translate(-50%, -50%) scale(1); } 25% { opacity: 1; transform: translate(-50%, -52%) scale(1.06); } 50% { opacity: 0.7; transform: translate(-50%, -49%) scale(0.96); } 75% { opacity: 0.95; transform: translate(-50%, -51%) scale(1.03); } }
+@keyframes breathe { 0%, 100% { opacity: 0.75; } 50% { opacity: 1; } }
+@keyframes tw { 0%, 100% { opacity: calc(var(--a, 1) * 0.3); } 50% { opacity: var(--a, 1); } }
+@keyframes mote { 0% { transform: translate(0, 0); opacity: 0; } 15% { opacity: 0.9; } 85% { opacity: 0.6; } 100% { transform: translate(16px, -44px); opacity: 0; } }
+@keyframes puff { 0% { transform: translate(-50%, -50%) scale(0.4); opacity: 0; } 20% { opacity: 0.9; } 100% { transform: translate(-30%, -250%) scale(2.2); opacity: 0; } }
+@keyframes ember { 0% { transform: translate(0, 0); opacity: 0; } 15% { opacity: 1; } 100% { transform: translate(var(--dx, 0), -60px); opacity: 0; } }
+@keyframes flap { from { transform: scaleY(1); } to { transform: scaleY(-0.55); } }
+@keyframes bulbdim { 0%, 60%, 100% { opacity: 0; } 61% { opacity: 0.2; } 62% { opacity: 0.02; } 63.5% { opacity: 0.14; } 65% { opacity: 0; } 88% { opacity: 0; } 89% { opacity: 0.07; } 90% { opacity: 0; } }
 @keyframes shake { 0%, 100% { transform: none; } 15% { transform: translate(-5px, 2px); } 30% { transform: translate(4px, -3px); } 45% { transform: translate(-3px, 1px); } 60% { transform: translate(2px, -1px); } 80% { transform: translate(-1px, 0); } }
 @keyframes placeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes wIn { from { opacity: 0; filter: blur(3px); } to { opacity: 1; filter: none; } }

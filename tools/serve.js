@@ -18,7 +18,30 @@ const TYPES = {
   ".webp": "image/webp", ".mp3": "audio/mpeg", ".m4a": "audio/mp4", ".ogg": "audio/ogg", ".woff2": "font/woff2"
 };
 
+// Dev-only: tools/assets.html posts processed images here. Accepted only from this computer,
+// only into assets/scenes or assets/faces, only .webp/.jpg/.png, max 4 MB.
+function isLocal(req) {
+  const a = req.socket.remoteAddress || "";
+  return a === "127.0.0.1" || a === "::1" || a === "::ffff:127.0.0.1";
+}
+function handleSave(req, res) {
+  if (!isLocal(req)) { res.writeHead(403); res.end("Local only"); return; }
+  const q = new URL(req.url, "http://localhost").searchParams.get("path") || "";
+  if (!/^assets\/(scenes|faces)\/[a-z0-9_-]+\.(webp|jpg|png)$/.test(q)) { res.writeHead(400); res.end("Bad path"); return; }
+  const chunks = []; let size = 0;
+  req.on("data", (c) => { size += c.length; if (size > 4 * 1024 * 1024) { req.destroy(); return; } chunks.push(c); });
+  req.on("end", () => {
+    const out = path.join(root, q);
+    fs.mkdirSync(path.dirname(out), { recursive: true });
+    fs.writeFile(out, Buffer.concat(chunks), (err) => {
+      res.writeHead(err ? 500 : 200, { "Content-Type": "text/plain" });
+      res.end(err ? "Write failed" : `Saved ${q} (${size} bytes)`);
+    });
+  });
+}
+
 http.createServer((req, res) => {
+  if (req.method === "POST" && (req.url || "").startsWith("/__save")) { handleSave(req, res); return; }
   let p = decodeURIComponent((req.url || "/").split("?")[0]);
   if (p.endsWith("/")) p += "index.html";
   const file = path.normalize(path.join(root, p));

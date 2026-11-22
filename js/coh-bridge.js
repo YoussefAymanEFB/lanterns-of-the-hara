@@ -76,7 +76,8 @@
 
     haptic: function (kind) {
       if (send) { try { send({ type: "haptic", kind: kind || "light" }); } catch (e) {} return; }
-      if (navigator.vibrate) { try { navigator.vibrate(kind === "heavy" ? [30, 40, 60] : 15); } catch (e) {} }
+      var tapped = !navigator.userActivation || navigator.userActivation.hasBeenActive;
+      if (navigator.vibrate && tapped) { try { navigator.vibrate(kind === "heavy" ? [30, 40, 60] : 15); } catch (e) {} }
     },
 
     receive: function (msg) {

@@ -8,7 +8,7 @@
     - every "next" points at a node that exists, and every node can be reached
     - no loops (each episode is a one-way walk through the hara)
     - every path from start to an end passes through at least 5 choices
-    - every path passes through exactly one donation choice (give)
+    - every path passes through exactly ep.gives donation choices (give), 1 if not set
     - each give has 5 options, the first free, prices rising
     - {m|f} and {name} templates are well formed
 */
@@ -27,7 +27,7 @@ vm.createContext(sandbox);
 const files = fs.readdirSync(dir).filter((f) => /^ep\d+\.js$/.test(f)).sort();
 for (const f of files) vm.runInContext(fs.readFileSync(path.join(dir, f), "utf8"), sandbox, { filename: f });
 
-const PLACES = ["home", "street", "alley", "bakery", "corner", "koshk", "fulcart", "table", "koshari", "kebab", "mosque", "roof", "workshop"];
+const PLACES = ["home", "alley", "bakery", "steps", "table", "steps_iftar", "fulcart", "koshari", "kebab", "mosque", "roof", "workshop"];
 const TIMES = ["asr", "pre", "maghrib", "night"];
 let failed = false;
 
@@ -43,6 +43,7 @@ for (const ep of Object.values(sandbox.HARA.episodes)) {
   const errors = [];
   const nodes = ep.nodes || {};
   const ids = Object.keys(nodes);
+  const GIVES = ep.gives || 1;
   if (!nodes[ep.start]) errors.push(`start node "${ep.start}" does not exist`);
 
   for (const id of ids) {
@@ -63,6 +64,7 @@ for (const ep of Object.values(sandbox.HARA.episodes)) {
       ch.options.forEach((o) => { if (!nodes[o.next]) errors.push(`${id}: option "${o.t}" goes to missing node "${o.next}"`); });
     }
     if (n.give) {
+      n.give.options.forEach((o) => { if (!o.key) errors.push(`${id}: every give option needs a key`); });
       const p = n.give.options.map((o) => o.price);
       if (p.length !== 5) errors.push(`${id}: give should have 5 options (has ${p.length})`);
       if (p[0] !== 0) errors.push(`${id}: the first give option should be free`);
@@ -88,7 +90,7 @@ for (const ep of Object.values(sandbox.HARA.episodes)) {
       minChoices = Math.min(minChoices, choices);
       maxChoices = Math.max(maxChoices, choices);
       if (choices < MIN_CHOICES) errors.push(`path with only ${choices} choices: ${s.join(" -> ")}`);
-      if (gives !== 1) errors.push(`path with ${gives} donation choices (needs 1): ${s.join(" -> ")}`);
+      if (gives !== GIVES) errors.push(`path with ${gives} donation choices (needs ${GIVES}): ${s.join(" -> ")}`);
       return;
     }
     if (n.next) return walk(n.next, s, choices, gives);
@@ -105,7 +107,7 @@ for (const ep of Object.values(sandbox.HARA.episodes)) {
     errors.slice(0, 40).forEach((e) => console.log("   - " + e));
     if (errors.length > 40) console.log(`   ... and ${errors.length - 40} more`);
   } else {
-    console.log(`✓ ${label}: ${ids.length} nodes, ${paths} paths, ${minChoices}–${maxChoices} choices per path`);
+    console.log(`✓ ${label}: ${ids.length} nodes, ${paths} paths, ${minChoices}–${maxChoices} choices per path, ${GIVES} donation moments on every path`);
   }
 }
 

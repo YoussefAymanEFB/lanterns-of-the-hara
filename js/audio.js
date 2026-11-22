@@ -1,228 +1,420 @@
 /*
-  Sound for the hara, made in the browser (no audio files to download).
-    - ambience: a soft street hum whose level follows the time of day
-    - music: an oud-like plucked string improvising slowly in maqam Bayati on D,
-             including the E half-flat that gives it an Egyptian sound
-    - effects: the iftar cannon, a lantern chime, the mesaharaty's drum, a soft tap
-  Final versions can swap in recorded sound and a composed theme with the same calls.
+  فوانيس الحارة · sound
+  ------------------------------------------------------------
+  Three layers, all quiet on purpose:
+    1. Ambience per place: a bed (air, room tone, crowd murmur, oven roar, grill crackle...) plus
+       small random events (cutlery, coins, a ball bouncing down the alley, pigeons' wings).
+    2. Story effects, fired by `fx` in the episode: stairs, the basket knocking on the window, the ball,
+       coins on the counter, juice poured, the workshop door, the carpenter's plane, the iftar cannon.
+    3. Music only at three moments (title, right after the cannon, the end screen): a short composed
+       theme in maqam Bayati on a qanun-like plucked string. Nothing loops.
+
+  Recorded clips live in assets/sfx/ (stairs, kids, bakery). Everything else is synthesized here.
 */
 (function () {
   "use strict";
   var A = {};
-  var ctx = null, master, ambGain, ambFilter, musicBus, sfxBus, reverb;
-  var muted = false, hushed = false, level = 0.35, musicTimer = null, cache = {};
+  var ctx = null, master, comp, ambBus, sfxBus, musicBus, reverb, wet;
+  var muted = false, samples = {}, noise = {}, cache = {};
+  var bed = null, bedPlace = "", bedTime = "", hushed = false;
 
-  // Bayati on D (D3 up to G4). 160.12 Hz is the E half-flat.
-  var SCALE = [146.83, 160.12, 174.61, 196.0, 220.0, 233.08, 261.63, 293.66, 320.25, 349.23, 392.0];
-  var DRONE = 73.42;
-  var AMB = { asr: 0.07, pre: 0.06, maghrib: 0.035, night: 0.04, hub: 0.025 };
-  var MUSIC = { asr: 0.3, pre: 0.38, maghrib: 0.45, night: 0.5, hub: 0.4, end: 0.62 };
+  /* ---------------- building blocks ---------------- */
+  function now() { return ctx.currentTime; }
+  function rnd(a, b) { return a + Math.random() * (b - a); }
 
-  function noiseBuffer(sec, brown) {
-    var n = Math.floor(ctx.sampleRate * sec), buf = ctx.createBuffer(1, n, ctx.sampleRate), d = buf.getChannelData(0), last = 0;
+  function noiseBuf(kind) {
+    if (noise[kind]) return noise[kind];
+    var sec = kind === "brown" ? 6 : 3, n = Math.floor(ctx.sampleRate * sec);
+    var buf = ctx.createBuffer(1, n, ctx.sampleRate), d = buf.getChannelData(0), last = 0;
     for (var i = 0; i < n; i++) {
       var w = Math.random() * 2 - 1;
-      if (brown) { last = (last + 0.02 * w) / 1.02; d[i] = last * 3.2; } else d[i] = w;
+      if (kind === "brown") { last = (last + 0.02 * w) / 1.02; d[i] = last * 3.3; } else d[i] = w;
     }
-    return buf;
+    return (noise[kind] = buf);
   }
-
-  function impulse(sec) {
+  function impulse(sec, decay) {
     var n = Math.floor(ctx.sampleRate * sec), buf = ctx.createBuffer(2, n, ctx.sampleRate);
     for (var c = 0; c < 2; c++) {
       var d = buf.getChannelData(c);
-      for (var i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 2.6);
+      for (var i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, decay);
     }
     return buf;
   }
-
-  // Karplus-Strong plucked string, rendered once per pitch and cached.
-  function pluck(freq) {
-    var key = freq.toFixed(2);
-    if (cache[key]) return cache[key];
-    var sr = ctx.sampleRate, n = Math.floor(sr * 2.4), N = Math.max(2, Math.round(sr / freq));
-    var buf = ctx.createBuffer(1, n, sr), out = buf.getChannelData(0), ring = new Float32Array(N), i;
-    for (i = 0; i < N; i++) ring[i] = Math.random() * 2 - 1;
-    for (var p = 0; p < 2; p++) for (i = 1; i < N; i++) ring[i] = 0.5 * (ring[i] + ring[i - 1]); // mellower attack
-    var idx = 0;
-    for (i = 0; i < n; i++) {
-      var a = ring[idx], b = ring[(idx + 1) % N];
-      ring[idx] = 0.4978 * (a + b);
-      out[i] = a;
-      idx = (idx + 1) % N;
-    }
-    cache[key] = buf;
-    return buf;
+  function env(g, t, peak, attack, decay) {
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(Math.max(peak, 0.0002), t + attack);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + attack + decay);
   }
-
-  function playNote(freq, when, vol) {
-    var s = ctx.createBufferSource(), g = ctx.createGain();
-    s.buffer = pluck(freq);
-    s.playbackRate.value = 1 + (Math.random() - 0.5) * 0.004;
-    g.gain.setValueAtTime(vol, when);
-    g.gain.exponentialRampToValueAtTime(0.0008, when + 2.2);
-    s.connect(g); g.connect(musicBus);
-    s.start(when); s.stop(when + 2.4);
+  // A filtered noise burst: footsteps, knocks, slaps, rustles, the plane's "shhk".
+  function burst(o) {
+    var t = o.t || now() + 0.01, s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+    s.buffer = noiseBuf(o.brown ? "brown" : "white");
+    f.type = o.type || "bandpass"; f.frequency.value = o.freq || 1000; f.Q.value = o.q || 1;
+    if (o.sweep) f.frequency.exponentialRampToValueAtTime(o.sweep, t + (o.attack || 0.005) + (o.decay || 0.1));
+    env(g, t, o.gain, o.attack || 0.004, o.decay || 0.1);
+    s.connect(f); f.connect(g); g.connect(o.dest || sfxBus);
+    s.start(t, Math.random() * 2); s.stop(t + (o.attack || 0.004) + (o.decay || 0.1) + 0.05);
   }
-
-  function phrase() {
-    if (!ctx || hushed || muted) return schedule(2500);
-    var t = ctx.currentTime + 0.05, beat = 0.38 + Math.random() * 0.08;
-    var idx = Math.random() < 0.6 ? 0 : 4; // start on D or A
-    var len = 4 + Math.floor(Math.random() * 4);
-    for (var k = 0; k < len; k++) {
-      var step = [-2, -1, -1, 1, 1, 2][Math.floor(Math.random() * 6)];
-      if (idx > 7) step = -Math.abs(step);
-      idx = Math.max(0, Math.min(SCALE.length - 1, idx + step));
-      if (k === len - 1) idx = [0, 4, 7][Math.floor(Math.random() * 3)];
-      var vol = 0.22 + Math.random() * 0.12;
-      playNote(SCALE[idx], t, vol);
-      if (Math.random() < 0.18) playNote(SCALE[idx], t + beat * 0.25, vol * 0.6); // a quick double pluck
-      t += beat * [1, 1, 1.5, 2, 0.75][Math.floor(Math.random() * 5)];
-    }
-    var rest = (t - ctx.currentTime) * 1000 + (3600 - level * 2600) + Math.random() * 1800;
-    schedule(rest);
+  // A short pitched hit: thumps (low sine with a falling pitch) and woody knocks.
+  function thump(o) {
+    var t = o.t || now() + 0.01, osc = ctx.createOscillator(), g = ctx.createGain();
+    osc.type = o.wave || "sine";
+    osc.frequency.setValueAtTime(o.from, t);
+    osc.frequency.exponentialRampToValueAtTime(o.to || o.from * 0.6, t + (o.decay || 0.15));
+    env(g, t, o.gain, o.attack || 0.004, o.decay || 0.15);
+    osc.connect(g); g.connect(o.dest || sfxBus);
+    osc.start(t); osc.stop(t + (o.decay || 0.15) + 0.05);
   }
-
-  function schedule(ms) {
-    clearTimeout(musicTimer);
-    musicTimer = setTimeout(phrase, ms);
+  // Inharmonic partials: coins, cutlery, glasses, metal koshari bowls.
+  function metal(o) {
+    var t = o.t || now() + 0.01, base = o.base * rnd(0.97, 1.03);
+    (o.ratios || [1, 1.59, 2.31, 3.08]).forEach(function (r, i) {
+      var osc = ctx.createOscillator(), g = ctx.createGain();
+      osc.frequency.value = base * r;
+      env(g, t, o.gain / (i + 1), 0.002, (o.decay || 0.3) / (1 + i * 0.35));
+      osc.connect(g); g.connect(o.dest || sfxBus);
+      osc.start(t); osc.stop(t + (o.decay || 0.3) + 0.05);
+    });
   }
-
-  function drone() {
-    [DRONE, DRONE * 1.5].forEach(function (f, i) {
-      var o = ctx.createOscillator(), g = ctx.createGain();
-      o.type = i ? "sine" : "triangle";
-      o.frequency.value = f;
-      g.gain.value = i ? 0.012 : 0.022;
-      o.connect(g); g.connect(musicBus);
-      o.start();
+  function playSample(name, o) {
+    o = o || {};
+    var buf = samples[name];
+    if (!buf) return;
+    var t = o.t || now() + 0.01, s = ctx.createBufferSource(), g = ctx.createGain(), dest = o.dest || sfxBus, node = s;
+    s.buffer = buf; s.playbackRate.value = o.rate || 1;
+    if (o.lowpass) { var f = ctx.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = o.lowpass; s.connect(f); node = f; }
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(o.gain == null ? 0.5 : o.gain, t + (o.fade || 0.08));
+    var dur = buf.duration / (o.rate || 1);
+    g.gain.setValueAtTime(o.gain == null ? 0.5 : o.gain, t + Math.max(0.1, dur - 0.4));
+    g.gain.linearRampToValueAtTime(0.0001, t + dur);
+    node.connect(g); g.connect(dest);
+    s.start(t); s.stop(t + dur + 0.05);
+    return s;
+  }
+  function loadSamples() {
+    ["stairs", "kids", "bakery"].forEach(function (n) {
+      fetch("assets/sfx/" + n + ".mp3").then(function (r) { return r.arrayBuffer(); }).then(function (ab) {
+        return new Promise(function (ok, bad) { var p = ctx.decodeAudioData(ab, ok, bad); if (p && p.then) p.then(ok, bad); });
+      }).then(function (buf) { samples[n] = buf; }).catch(function () {});
     });
   }
 
+  /* ---------------- one-shot effects ---------------- */
+  var FX = {
+    stairs: function () {
+      if (samples.stairs) { playSample("stairs", { gain: 0.55 }); return; }
+      for (var i = 0; i < 6; i++) FX.step(now() + 0.05 + i * 0.36, 0.5 - i * 0.04);
+    },
+    step: function (t, v) {
+      burst({ t: t, freq: 520, q: 0.8, type: "lowpass", gain: 0.22 * v, decay: 0.09 });
+      thump({ t: t, from: 95, to: 60, gain: 0.25 * v, decay: 0.08 });
+    },
+    kids: function () { playSample("kids", { gain: 0.8, lowpass: 5000 }); },
+    bakery: function () { playSample("bakery", { gain: 0.7 }); },
+    street: function () { if (samples.bakery) playSample("bakery", { gain: 0.45, rate: 0.9, lowpass: 1800 }); },
+    basket: function () {
+      var t = now() + 0.05;
+      // rope creak, then three light knocks on the window glass
+      var o = ctx.createOscillator(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+      o.type = "sawtooth"; o.frequency.setValueAtTime(150, t); o.frequency.linearRampToValueAtTime(190, t + 0.35); o.frequency.linearRampToValueAtTime(165, t + 0.6);
+      f.type = "bandpass"; f.frequency.value = 1100; f.Q.value = 7;
+      env(g, t, 0.05, 0.12, 0.5);
+      o.connect(f); f.connect(g); g.connect(sfxBus); o.start(t); o.stop(t + 0.7);
+      [0.75, 0.97, 1.19].forEach(function (d) { metal({ t: t + d, base: 1250, ratios: [1, 1.52, 2.7], gain: 0.12, decay: 0.09 }); burst({ t: t + d, freq: 900, q: 2, gain: 0.06, decay: 0.04 }); });
+    },
+    ball: function () {
+      var t = now() + 0.02;
+      thump({ t: t, from: 150, to: 70, gain: 0.32, decay: 0.12 });          // the kick, over there
+      burst({ t: t + 0.05, freq: 400, sweep: 1500, q: 1.4, gain: 0.12, attack: 0.5, decay: 0.12 }); // whoosh toward you
+    },
+    kick: function () {
+      var t = now() + 0.02;
+      thump({ t: t, from: 170, to: 65, gain: 0.5, decay: 0.14 });
+      burst({ t: t, freq: 2000, q: 0.8, gain: 0.12, decay: 0.03 });
+      [0.75, 1.15, 1.45, 1.65].forEach(function (d, i) { thump({ t: t + d, from: 120, to: 70, gain: 0.16 / (i + 1), decay: 0.1 }); });
+      setTimeout(function () { playSample("kids", { gain: 0.38, lowpass: 5200 }); }, 700);
+    },
+    catch: function () {
+      var t = now() + 0.02;
+      burst({ t: t, freq: 1400, q: 1.2, gain: 0.22, decay: 0.06 });
+      thump({ t: t, from: 110, to: 70, gain: 0.25, decay: 0.08 });
+    },
+    coins: function () {
+      var t = now() + 0.05;
+      [0, 0.09, 0.2, 0.26].forEach(function (d, i) { metal({ t: t + d, base: rnd(2300, 2900), ratios: [1, 1.48, 2.21, 3.06], gain: 0.07 - i * 0.01, decay: 0.35 }); });
+      burst({ t: t + 0.32, freq: 3000, q: 1, gain: 0.03, decay: 0.08 });
+    },
+    thud: function () {
+      var t = now() + 0.02;
+      thump({ t: t, from: 120, to: 70, gain: 0.3, decay: 0.2 });
+      metal({ t: t, base: 420, ratios: [1, 1.86, 2.9], gain: 0.12, decay: 0.16 });
+      burst({ t: t, freq: 500, type: "lowpass", gain: 0.15, decay: 0.12 });
+    },
+    pour: function () {
+      var t = now() + 0.05, s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain(), lfo = ctx.createOscillator(), lg = ctx.createGain();
+      s.buffer = noiseBuf("white");
+      f.type = "bandpass"; f.Q.value = 6; f.frequency.setValueAtTime(450, t); f.frequency.exponentialRampToValueAtTime(1500, t + 1.6);
+      lfo.frequency.value = 13; lg.gain.value = 0.07; lfo.connect(lg); lg.connect(g.gain);
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.16, t + 0.15); g.gain.setValueAtTime(0.16, t + 1.4); g.gain.linearRampToValueAtTime(0.0001, t + 1.7);
+      s.connect(f); f.connect(g); g.connect(sfxBus);
+      s.start(t); s.stop(t + 1.8); lfo.start(t); lfo.stop(t + 1.8);
+    },
+    clink: function (dest, v) { metal({ base: rnd(1700, 2300), ratios: [1, 1.63, 2.42], gain: 0.06 * (v || 1), decay: 0.3, dest: dest }); },
+    glass: function (dest, v) { metal({ base: rnd(2500, 2900), ratios: [1, 1.57, 2.4], gain: 0.05 * (v || 1), decay: 0.7, dest: dest }); },
+    bowl: function (dest, v) { metal({ base: rnd(850, 1050), ratios: [1, 1.52, 2.46, 3.3], gain: 0.07 * (v || 1), decay: 0.4, dest: dest }); burst({ freq: 3000, gain: 0.02 * (v || 1), decay: 0.02, dest: dest }); },
+    ladle: function (dest, v) { metal({ base: rnd(620, 760), ratios: [1, 1.7, 2.6], gain: 0.07 * (v || 1), decay: 0.45, dest: dest }); },
+    bounce: function (dest, v) { thump({ from: 120, to: 70, gain: 0.12 * (v || 1), decay: 0.1, dest: dest }); },
+    flutter: function (dest, v) {
+      var t = now() + 0.02, n = Math.round(rnd(7, 12));
+      for (var i = 0; i < n; i++) burst({ t: t + i * 0.05, freq: rnd(900, 1400), q: 1.5, gain: 0.04 * (v || 1) * (1 - i / n), decay: 0.035, dest: dest });
+    },
+    rustle: function (dest, v) { burst({ freq: 3200, q: 0.7, gain: 0.02 * (v || 1), attack: 0.08, decay: 0.3, dest: dest }); },
+    creak: function (dest, v) {
+      var t = now() + 0.02, o = ctx.createOscillator(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+      o.type = "sawtooth"; o.frequency.setValueAtTime(rnd(110, 140), t); o.frequency.linearRampToValueAtTime(rnd(150, 190), t + 0.5);
+      f.type = "bandpass"; f.frequency.value = 800; f.Q.value = 8;
+      env(g, t, 0.025 * (v || 1), 0.15, 0.4);
+      o.connect(f); f.connect(g); g.connect(dest || sfxBus); o.start(t); o.stop(t + 0.6);
+    },
+    door: function () {
+      var t = now() + 0.05, o = ctx.createOscillator(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+      o.type = "sawtooth";
+      o.frequency.setValueAtTime(95, t); o.frequency.linearRampToValueAtTime(120, t + 0.6); o.frequency.linearRampToValueAtTime(88, t + 1.3);
+      f.type = "bandpass"; f.frequency.value = 700; f.Q.value = 9;
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.07, t + 0.2); g.gain.setValueAtTime(0.07, t + 1.1); g.gain.linearRampToValueAtTime(0.0001, t + 1.4);
+      o.connect(f); f.connect(g); g.connect(sfxBus); o.start(t); o.stop(t + 1.5);
+      FX.thud && thump({ t: t + 1.45, from: 100, to: 65, gain: 0.18, decay: 0.15 });
+    },
+    plane: function () {
+      var t = now() + 0.1;
+      burst({ t: t, freq: 2600, q: 0.9, gain: 0.26, attack: 0.12, decay: 0.55 });
+      burst({ t: t, freq: 900, q: 1.5, gain: 0.1, attack: 0.1, decay: 0.5 });
+      metal({ t: t + 0.7, base: 520, ratios: [1, 2.1], gain: 0.04, decay: 0.12 });
+    },
+    chime: function () {
+      var t = now() + 0.02;
+      [[587.33, 0.1], [880, 0.06], [1174.66, 0.035]].forEach(function (p, i) {
+        var o = ctx.createOscillator(), g = ctx.createGain();
+        o.frequency.value = p[0]; env(g, t + i * 0.11, p[1], 0.01, 2.4);
+        o.connect(g); g.connect(sfxBus); o.start(t + i * 0.11); o.stop(t + 3);
+      });
+    },
+    drum: function () {
+      var t = now() + 0.05;
+      [[0, "dum"], [0.5, "tak"], [0.72, "tak"], [0.95, "dum"]].forEach(function (hh) {
+        if (hh[1] === "dum") thump({ t: t + hh[0], from: 120, to: 55, gain: 0.3, decay: 0.45 });
+        else burst({ t: t + hh[0], freq: 2200, q: 1.2, gain: 0.15, decay: 0.11 });
+      });
+    },
+    tap: function () { thump({ from: 640, to: 440, gain: 0.05, decay: 0.12 }); },
+    hush: function () { A.hush(); },
+    cannon: function () { A.cannon(); }
+  };
+
+  /* ---------------- ambience per place ---------------- */
+  // air: [lowpass Hz, level]. murmur: level of the crowd bed. roar/sizzle/hum: extra beds.
+  // ev: [effect, min s, max s, volume]. kids: [min s, max s, volume].
+  var BEDS = {
+    home: { air: [240, 0.05], ev: [["clink", 6, 12, 0.5], ["creak", 14, 24, 0.6]] },
+    alley: { air: [700, 0.07], kids: [7, 14, 0.3], ev: [["bounce", 3, 7, 0.7], ["flutter", 9, 17, 0.7]] },
+    bakery: { air: [300, 0.05], roar: 0.06, murmur: 0.26, ev: [["coins", 6, 12, 0.6], ["rustle", 4, 8, 1]] },
+    steps: { air: [620, 0.06], murmur: 0.1, ev: [["clink", 5, 10, 0.4], ["bounce", 12, 22, 0.4]] },
+    table: { air: [600, 0.04], murmur: 0.3, ev: [["clink", 1.2, 3.5, 0.6], ["glass", 4, 9, 0.6]] },
+    steps_iftar: { air: [480, 0.035], ev: [["clink", 7, 14, 0.25], ["glass", 12, 20, 0.2]] },
+    fulcart: { air: [600, 0.05], murmur: 0.22, simmer: 0.035, ev: [["ladle", 3.5, 8, 0.7], ["clink", 3, 7, 0.4]] },
+    koshari: { air: [320, 0.04], murmur: 0.3, sizzle: 0.025, ev: [["bowl", 1, 3, 0.7]] },
+    kebab: { air: [520, 0.04], murmur: 0.22, sizzle: 0.05, kids: [11, 20, 0.22], ev: [["clink", 3, 7, 0.4]] },
+    mosque: { air: [170, 0.05], room: true, ev: [["rustle", 5, 11, 0.6]] },
+    roof: { air: [850, 0.05], kids: [10, 18, 0.22], ev: [["flutter", 20, 35, 0.3]] },
+    workshop: { air: [200, 0.03], hum: 0.01, ev: [["creak", 8, 16, 0.6]] },
+    hub: { air: [750, 0.035], kids: [14, 24, 0.14] }
+  };
+
+  function loopNoise(kind, filterType, freq, level, dest) {
+    var s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+    s.buffer = noiseBuf(kind); s.loop = true;
+    f.type = filterType; f.frequency.value = freq;
+    g.gain.value = level;
+    s.connect(f); f.connect(g); g.connect(dest);
+    s.start(now(), Math.random() * 2);
+    return s;
+  }
+  function buildBed(place, time) {
+    var c = BEDS[place] || BEDS.hub, b = { sources: [], timers: [], out: ctx.createGain() };
+    b.out.gain.value = 0.0001;
+    b.out.connect(ambBus);
+    if (c.room) b.out.connect(reverb);
+    var nightDrop = time === "night" ? 0.7 : 1;
+    b.sources.push(loopNoise("brown", "lowpass", c.air[0], c.air[1] * nightDrop, b.out));
+    if (c.roar) {
+      var r = loopNoise("brown", "lowpass", 160, c.roar, b.out);
+      b.sources.push(r);
+    }
+    if (c.sizzle) b.sources.push(loopNoise("white", "highpass", 3500, c.sizzle, b.out));
+    if (c.simmer) b.sources.push(loopNoise("white", "bandpass", 700, c.simmer, b.out));
+    if (c.hum) [100, 150].forEach(function (f, i) {
+      var o = ctx.createOscillator(), g = ctx.createGain(); o.frequency.value = f; g.gain.value = c.hum / (i + 1);
+      o.connect(g); g.connect(b.out); o.start(); b.sources.push(o);
+    });
+    // crowd murmur: the recorded bakery chatter, slowed a little, filtered far away, looped at two speeds
+    if (c.murmur) {
+      var startMurmur = function () {
+        if (!samples.bakery) { b.timers.push(setTimeout(startMurmur, 500)); return; }
+        [0.86, 0.97].forEach(function (rate, i) {
+          var s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+          s.buffer = samples.bakery; s.loop = true; s.playbackRate.value = rate;
+          f.type = "lowpass"; f.frequency.value = 1700 - i * 300;
+          g.gain.value = c.murmur * (i ? 0.7 : 1);
+          s.connect(f); f.connect(g); g.connect(b.out);
+          s.start(now(), Math.random() * samples.bakery.duration);
+          b.sources.push(s);
+        });
+      };
+      startMurmur();
+    }
+    function every(min, max, fn) {
+      (function go() { b.timers.push(setTimeout(function () { if (!b.dead && !hushed) fn(); go(); }, rnd(min, max) * 1000)); })();
+    }
+    (c.ev || []).forEach(function (e) { every(e[1], e[2], function () { FX[e[0]](b.out, e[3] * 1.8); }); });
+    if (c.kids) every(c.kids[0], c.kids[1], function () { playSample("kids", { gain: c.kids[2], lowpass: 3200, rate: rnd(0.94, 1.04), dest: b.out }); });
+    return b;
+  }
+  function dropBed(b, fade) {
+    if (!b) return;
+    b.dead = true;
+    b.timers.forEach(clearTimeout);
+    b.out.gain.cancelScheduledValues(now());
+    b.out.gain.setTargetAtTime(0.0001, now(), fade || 0.5);
+    setTimeout(function () { b.sources.forEach(function (s) { try { s.stop(); } catch (e) {} }); try { b.out.disconnect(); } catch (e) {} }, 3500);
+  }
+
+  /* ---------------- music: three short cues, never looping ---------------- */
+  // Maqam Bayati on D. 320.25 Hz is the E half-flat that makes it sound Egyptian.
+  var N = { G3: 196, A3: 220, Bb3: 233.08, C4: 261.63, D4: 293.66, Eh4: 320.25, F4: 349.23, G4: 392, A4: 440, Bb4: 466.16, C5: 523.25, D5: 587.33 };
+  var THEME = [
+    ["A4", 1], ["G4", 0.5], ["F4", 0.5], ["G4", 1.5], ["A4", 0.5],
+    ["Bb4", 0.5], ["A4", 0.5], ["G4", 0.5], ["F4", 0.5], ["Eh4", 1], ["D4", 1],
+    ["F4", 0.5], ["G4", 0.5], ["A4", 1], ["C5", 0.5], ["Bb4", 0.5], ["A4", 1],
+    ["G4", 0.5], ["F4", 0.5], ["Eh4", 0.5], ["F4", 0.5], ["D4", 2]
+  ];
+  function pluck(freq) {
+    var key = freq.toFixed(2);
+    if (cache[key]) return cache[key];
+    var sr = ctx.sampleRate, n = Math.floor(sr * 2.2), M = Math.max(2, Math.round(sr / freq));
+    var buf = ctx.createBuffer(1, n, sr), out = buf.getChannelData(0), ring = new Float32Array(M), i;
+    for (i = 0; i < M; i++) ring[i] = Math.random() * 2 - 1;
+    for (i = 1; i < M; i++) ring[i] = 0.6 * ring[i] + 0.4 * ring[i - 1]; // a little softer than a raw pluck
+    var idx = 0;
+    for (i = 0; i < n; i++) { var a = ring[idx], b2 = ring[(idx + 1) % M]; ring[idx] = 0.4985 * (a + b2); out[i] = a; idx = (idx + 1) % M; }
+    return (cache[key] = buf);
+  }
+  function note(freq, t, vol, len) {
+    var s = ctx.createBufferSource(), g = ctx.createGain();
+    s.buffer = pluck(freq);
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.0005, t + Math.max(0.5, len));
+    s.connect(g); g.connect(musicBus);
+    s.start(t); s.stop(t + Math.max(0.6, len + 0.1));
+  }
+  function pad(t, dur, vol) {
+    [N.D4 / 2, N.A3].forEach(function (f, i) {
+      var o = ctx.createOscillator(), fl = ctx.createBiquadFilter(), g = ctx.createGain();
+      o.type = "triangle"; o.frequency.value = f; o.detune.value = i ? 4 : -4;
+      fl.type = "lowpass"; fl.frequency.value = 600;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(vol * (i ? 0.6 : 1), t + 2.5);
+      g.gain.setValueAtTime(vol * (i ? 0.6 : 1), t + dur - 2.5);
+      g.gain.linearRampToValueAtTime(0.0001, t + dur);
+      o.connect(fl); fl.connect(g); g.connect(musicBus); o.start(t); o.stop(t + dur + 0.1);
+    });
+  }
+  function playTheme(upTo, vol, beat, withDrum) {
+    var t = now() + 0.25, start = t, list = THEME.slice(0, upTo);
+    list.forEach(function (nt, i) {
+      var f = N[nt[0]], len = nt[1] * beat;
+      note(f, t, vol * (i % 2 ? 0.85 : 1), len + 0.6);
+      if (nt[1] >= 1.5) for (var k = 1; k * 0.11 < len - 0.15; k++) note(f, t + k * 0.11, vol * 0.32 * (1 - k * 0.11 / len), 0.4); // qanun tremolo
+      t += len;
+    });
+    var total = t - start + 2.2;
+    pad(start, total, 0.028);
+    if (withDrum) for (var b = 0; b < (t - start) / (beat * 2); b++) {
+      thump({ t: start + b * beat * 2, from: 110, to: 60, gain: 0.12, decay: 0.35, dest: musicBus });
+      burst({ t: start + b * beat * 2 + beat, freq: 2400, q: 1.2, gain: 0.04, decay: 0.08, dest: musicBus });
+    }
+  }
+  A.music = function (cue) {
+    if (!ctx || muted) return;
+    if (cue === "title") playTheme(5, 0.16, 0.62, false);
+    else if (cue === "iftar") playTheme(THEME.length, 0.15, 0.7, false);
+    else if (cue === "end") playTheme(THEME.length, 0.16, 0.6, true);
+  };
+
+  /* ---------------- public ---------------- */
   A.init = function () {
     if (ctx) { if (ctx.state === "suspended") ctx.resume(); return; }
     var AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
     try { ctx = new AC(); } catch (e) { ctx = null; return; }
-
-    master = ctx.createGain(); master.gain.value = muted ? 0 : 0.9; master.connect(ctx.destination);
-    reverb = ctx.createConvolver(); reverb.buffer = impulse(2.4);
-    var wet = ctx.createGain(); wet.gain.value = 0.32; reverb.connect(wet); wet.connect(master);
-
-    var amb = ctx.createBufferSource(); amb.buffer = noiseBuffer(5, true); amb.loop = true;
-    ambFilter = ctx.createBiquadFilter(); ambFilter.type = "lowpass"; ambFilter.frequency.value = 700;
-    ambGain = ctx.createGain(); ambGain.gain.value = 0;
-    amb.connect(ambFilter); ambFilter.connect(ambGain); ambGain.connect(master); amb.start();
-
-    musicBus = ctx.createGain(); musicBus.gain.value = 0.5;
-    var tone = ctx.createBiquadFilter(); tone.type = "lowpass"; tone.frequency.value = 2400;
+    master = ctx.createGain(); master.gain.value = muted ? 0 : 0.9;
+    comp = ctx.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 4; comp.attack.value = 0.005; comp.release.value = 0.25;
+    master.connect(comp); comp.connect(ctx.destination);
+    reverb = ctx.createConvolver(); reverb.buffer = impulse(2.2, 2.8);
+    wet = ctx.createGain(); wet.gain.value = 0.22; reverb.connect(wet); wet.connect(master);
+    ambBus = ctx.createGain(); ambBus.gain.value = 1; ambBus.connect(master);
+    sfxBus = ctx.createGain(); sfxBus.gain.value = 0.8; sfxBus.connect(master); sfxBus.connect(reverb);
+    musicBus = ctx.createGain(); musicBus.gain.value = 0.8;
+    var tone = ctx.createBiquadFilter(); tone.type = "lowpass"; tone.frequency.value = 3200;
     musicBus.connect(tone); tone.connect(master); tone.connect(reverb);
-
-    sfxBus = ctx.createGain(); sfxBus.gain.value = 0.9; sfxBus.connect(master); sfxBus.connect(reverb);
-
-    drone();
-    schedule(600);
+    loadSamples();
+    if (bedPlace) { var p = bedPlace; bedPlace = ""; A.scene(p, bedTime); }
   };
 
-  A.time = function (t) {
+  // Called whenever the picture changes place or time of day.
+  A.scene = function (place, time) {
+    if (place === bedPlace && time === bedTime) return;
+    bedPlace = place; bedTime = time;
     if (!ctx) return;
     hushed = false;
-    level = MUSIC[t] != null ? MUSIC[t] : 0.4;
-    var now = ctx.currentTime;
-    ambGain.gain.cancelScheduledValues(now);
-    ambGain.gain.setTargetAtTime(AMB[t] != null ? AMB[t] : 0.04, now, 0.8);
-    musicBus.gain.setTargetAtTime(level, now, 1.2);
+    var old = bed;
+    bed = buildBed(place, time);
+    bed.out.gain.setTargetAtTime(1, now(), 0.6);
+    dropBed(old, 0.5);
   };
+  A.time = function () {}; // kept for older callers
 
   A.hush = function () {
-    if (!ctx) return;
+    if (!ctx || !bed) return;
     hushed = true;
-    var now = ctx.currentTime;
-    ambGain.gain.setTargetAtTime(0.008, now, 0.6);
-    musicBus.gain.setTargetAtTime(0.06, now, 0.8);
+    bed.out.gain.setTargetAtTime(0.12, now(), 0.7);
   };
-
   A.cannon = function () {
     if (!ctx) return;
-    var t = ctx.currentTime + 0.02;
+    var t = now() + 0.02;
     [0, 0.42].forEach(function (delay, i) {
-      var amp = i ? 0.25 : 0.95, tt = t + delay;
-      var o = ctx.createOscillator(), g = ctx.createGain();
-      o.type = "sine";
-      o.frequency.setValueAtTime(95, tt);
-      o.frequency.exponentialRampToValueAtTime(30, tt + 0.7);
-      g.gain.setValueAtTime(0.0001, tt);
-      g.gain.exponentialRampToValueAtTime(amp, tt + 0.012);
-      g.gain.exponentialRampToValueAtTime(0.0001, tt + 1.8);
-      o.connect(g); g.connect(sfxBus); o.start(tt); o.stop(tt + 1.9);
-      var s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g2 = ctx.createGain();
-      s.buffer = noiseBuffer(1.6, false);
-      f.type = "lowpass";
-      f.frequency.setValueAtTime(900, tt);
-      f.frequency.exponentialRampToValueAtTime(70, tt + 1.3);
-      g2.gain.setValueAtTime(0.0001, tt);
-      g2.gain.exponentialRampToValueAtTime(amp * 0.8, tt + 0.01);
-      g2.gain.exponentialRampToValueAtTime(0.0001, tt + 1.5);
-      s.connect(f); f.connect(g2); g2.connect(sfxBus); s.start(tt);
+      var amp = i ? 0.22 : 0.85, tt = t + delay;
+      thump({ t: tt, from: 95, to: 30, gain: amp, attack: 0.01, decay: 1.7 });
+      burst({ t: tt, freq: 900, sweep: 70, type: "lowpass", gain: amp * 0.75, attack: 0.01, decay: 1.4 });
     });
-    // after the cannon the street wakes up again, warmer
-    setTimeout(function () { A.time("maghrib"); }, 2200);
+    hushed = false;
+    if (bed) bed.out.gain.setTargetAtTime(1, now() + 1.8, 1.2);
+    setTimeout(function () { A.music("iftar"); }, 2600);
   };
-
-  A.chime = function () {
-    if (!ctx) return;
-    var t = ctx.currentTime + 0.02;
-    [[587.33, 0.16], [880, 0.1], [1174.66, 0.06], [1620, 0.035]].forEach(function (p, i) {
-      var o = ctx.createOscillator(), g = ctx.createGain();
-      o.type = "sine"; o.frequency.value = p[0];
-      g.gain.setValueAtTime(0.0001, t + i * 0.09);
-      g.gain.exponentialRampToValueAtTime(p[1], t + i * 0.09 + 0.01);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + i * 0.09 + 2.6);
-      o.connect(g); g.connect(sfxBus); o.start(t + i * 0.09); o.stop(t + 3);
-    });
-  };
-
-  A.drum = function () {
-    if (!ctx) return;
-    var t = ctx.currentTime + 0.05;
-    // the mesaharaty's pattern: dum . tak tak dum
-    [[0, "dum"], [0.5, "tak"], [0.72, "tak"], [0.95, "dum"]].forEach(function (h) {
-      var tt = t + h[0];
-      if (h[1] === "dum") {
-        var o = ctx.createOscillator(), g = ctx.createGain();
-        o.frequency.setValueAtTime(120, tt); o.frequency.exponentialRampToValueAtTime(55, tt + 0.25);
-        g.gain.setValueAtTime(0.0001, tt); g.gain.exponentialRampToValueAtTime(0.6, tt + 0.008); g.gain.exponentialRampToValueAtTime(0.0001, tt + 0.5);
-        o.connect(g); g.connect(sfxBus); o.start(tt); o.stop(tt + 0.55);
-      } else {
-        var s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g2 = ctx.createGain();
-        s.buffer = noiseBuffer(0.2, false); f.type = "bandpass"; f.frequency.value = 2200; f.Q.value = 1.2;
-        g2.gain.setValueAtTime(0.0001, tt); g2.gain.exponentialRampToValueAtTime(0.35, tt + 0.004); g2.gain.exponentialRampToValueAtTime(0.0001, tt + 0.12);
-        s.connect(f); f.connect(g2); g2.connect(sfxBus); s.start(tt);
-      }
-    });
-  };
-
-  A.tap = function () {
-    if (!ctx) return;
-    var t = ctx.currentTime + 0.01, o = ctx.createOscillator(), g = ctx.createGain();
-    o.type = "sine"; o.frequency.setValueAtTime(660, t); o.frequency.exponentialRampToValueAtTime(440, t + 0.08);
-    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.08, t + 0.005); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.15);
-    o.connect(g); g.connect(sfxBus); o.start(t); o.stop(t + 0.2);
-  };
-
   A.fx = function (name) {
-    if (name === "cannon") A.cannon();
-    else if (name === "hush") A.hush();
-    else if (name === "chime") A.chime();
-    else if (name === "drum") A.drum();
+    if (!ctx || !FX[name]) return;
+    try { FX[name](); } catch (e) {}
   };
-
+  A.chime = function () { A.fx("chime"); };
+  A.drum = function () { A.fx("drum"); };
+  A.tap = function () { A.fx("tap"); };
   A.setMuted = function (m) {
     muted = !!m;
-    if (ctx) master.gain.setTargetAtTime(muted ? 0 : 0.9, ctx.currentTime, 0.15);
+    if (ctx) master.gain.setTargetAtTime(muted ? 0 : 0.9, now(), 0.15);
   };
   A.isMuted = function () { return muted; };
+  A._ctx = function () { return ctx; }; // for level checks in dev tools
+  A._meter = function () { var an = ctx.createAnalyser(); an.fftSize = 2048; comp.connect(an); return an; };
 
   window.HARA = window.HARA || {};
   HARA.audio = A;

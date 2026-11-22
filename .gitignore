@@ -1,3 +1,5 @@
 # Local tools config and the generated claude.ai build
 .claude/
 artifact.html
+# Original generated sheets (large); the game uses the cut versions in assets/scenes and assets/faces
+assets/raw/
