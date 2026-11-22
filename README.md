@@ -131,7 +131,7 @@ Analytics events:
 - **Sound:** three generated clips plus synthesized effects. Recorded Cairo ambience and a composed theme would be the next step up.
 - **Campaign names:** the start notice still shows "[اسم الحملة]".
 - **Counter:** the "players helped tonight" number is a sample.
-- **Daily unlock:** every episode opens at Fajr, but that isn't wired yet, because Day 1 is the only episode so far.
+- **Daily unlock:** each episode opens 2 hours before Maghrib (Cairo time), with one notification. That isn't wired yet, because Day 1 is the only episode so far.
 - **Fonts:** load from Google Fonts. For production, host them alongside the game.
 
 ## Shareable links

@@ -509,7 +509,7 @@
         h("h1", { "class": "hub-title", text: "فوانيس الحارة" }),
         h("p", { "class": "hub-sub", text: "كل يوم في رمضان، حد في الحارة محتاجك. نوّرت " + ar(lit) + " من " + ar(TOTAL) + " فانوس." }),
         card,
-        h("p", { "class": "hub-note", text: "كل حلقة بتفتح فجر يومها. واللي فاته يوم، يقدر يلعبه في أي وقت ويكمّل." }),
+        h("p", { "class": "hub-note", text: "كل حلقة بتفتح قبل المغرب بساعتين. واللي فاته يوم، يقدر يلعبه في أي وقت ويكمّل." }),
         h("div", { "class": "hub-links" }, [
           h("button", { type: "button", "class": "link-btn", text: "اسمك وطريقة الكلام", onclick: function () { showProfile(showHub); } }),
           soundBtn,
