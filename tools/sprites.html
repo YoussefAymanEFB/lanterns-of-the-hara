@@ -1,0 +1,33 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Hara sprites</title>
+<style>body{margin:0;background:#6d6050;color:#fff;font:12px sans-serif}canvas{image-rendering:pixelated;display:block}</style>
+<body>
+<canvas id="c"></canvas>
+<script src="../js/hara-art.js"></script>
+<script src="../js/hara-props.js"></script>
+<script src="../js/hara-world.js"></script>
+<script>
+// A sheet of every sprite at 6x, for checking the pixel art.
+var A = HARA.pix, S = 6, cvs = document.getElementById("c"), g = cvs.getContext("2d");
+var cast = (HARA.world && HARA.world.CAST) || {};
+var ids = Object.keys(cast);
+var rows = [];
+ids.forEach(function (id) { rows.push({ id: id, sp: A.person(cast[id]) }); });
+var W = 1400, Hh = 40 + Math.ceil(rows.length / 2) * 34 * S + 900;
+cvs.width = W; cvs.height = Hh;
+g.imageSmoothingEnabled = false;
+g.fillStyle = "#B9A68E"; g.fillRect(0, 0, W, Hh);
+rows.forEach(function (r, i) {
+  var col = i % 2, row = (i / 2) | 0, ox = col * 700 + 10, oy = 10 + row * 34 * S;
+  var frames = [r.sp.f[0][0], r.sp.f[0][1], r.sp.f[1][0], r.sp.f[2][0], r.sp.f[2][1], r.sp.f[3][3], r.sp.sit[0]];
+  frames.forEach(function (f, j) { g.drawImage(f, ox + j * 23 * S * 0.62, oy, f.width * S * 0.62, f.height * S * 0.62); });
+  g.fillStyle = "#000"; g.font = "14px sans-serif"; g.fillText(r.id, ox, oy + 12);
+});
+var y0 = 20 + Math.ceil(rows.length / 2) * 34 * S * 0.62 + 40, x = 10, rowH = 0;
+function put(c, s) { s = s || 4; if (x + c.width * s > W) { x = 10; y0 += rowH + 10; rowH = 0; } g.drawImage(c, x, y0, c.width * s, c.height * s); x += c.width * s + 12; rowH = Math.max(rowH, c.height * s); }
+Object.keys(A.PROPS).forEach(function (n) { put(A.prop(n, { set: true, f: 0 }), 4); });
+var ct = A.cat("ginger"); put(ct.walk[0][0], 6); put(ct.walk[0][1], 6); put(ct.sit[0], 6); put(ct.sleep, 6);
+var pg = A.pigeon(); pg.L.forEach(function (c) { put(c, 6); });
+put(A.ball(), 6); put(A.heart(), 6); put(A.bubble("!"), 6); put(A.bubble("♥"), 6); put(A.marker(), 6);
+</script>

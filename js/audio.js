@@ -208,6 +208,38 @@
       });
     },
     tap: function () { thump({ from: 640, to: 440, gain: 0.05, decay: 0.12 }); },
+    blip: function () { // one letter of dialogue on the map
+      var t = now() + 0.005, o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = "triangle"; o.frequency.setValueAtTime(rnd(520, 620), t);
+      env(g, t, 0.022, 0.004, 0.05);
+      o.connect(g); g.connect(sfxBus); o.start(t); o.stop(t + 0.08);
+    },
+    meow: function () {
+      var t = now() + 0.02, o = ctx.createOscillator(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+      o.type = "sawtooth";
+      o.frequency.setValueAtTime(520, t); o.frequency.linearRampToValueAtTime(780, t + 0.16); o.frequency.linearRampToValueAtTime(470, t + 0.5);
+      f.type = "bandpass"; f.frequency.setValueAtTime(900, t); f.frequency.linearRampToValueAtTime(1600, t + 0.18); f.frequency.linearRampToValueAtTime(800, t + 0.5); f.Q.value = 3;
+      env(g, t, 0.05, 0.06, 0.45);
+      o.connect(f); f.connect(g); g.connect(sfxBus); o.start(t); o.stop(t + 0.6);
+    },
+    knock: function (dest, v) { // Saber's mallet on wood
+      var t = now() + 0.01;
+      thump({ t: t, from: rnd(760, 900), to: 420, gain: 0.07 * (v || 1), decay: 0.07, wave: "triangle", dest: dest });
+      burst({ t: t, freq: 2400, q: 2, gain: 0.03 * (v || 1), decay: 0.025, dest: dest });
+    },
+    chirp: function (dest, v) { // a sparrow somewhere
+      var t = now() + 0.02, n = 2 + ((Math.random() * 3) | 0), f0 = rnd(2600, 3400);
+      for (var i = 0; i < n; i++) {
+        var o = ctx.createOscillator(), g = ctx.createGain(), s = t + i * rnd(0.08, 0.13);
+        o.frequency.setValueAtTime(f0, s); o.frequency.exponentialRampToValueAtTime(f0 * rnd(1.15, 1.4), s + 0.05);
+        env(g, s, 0.018 * (v || 1), 0.008, 0.05);
+        o.connect(g); g.connect(dest || sfxBus); o.start(s); o.stop(s + 0.08);
+      }
+    },
+    dice: function (dest, v) { // backgammon dice on the board
+      var t = now() + 0.02;
+      [0, 0.07, 0.15, 0.2].forEach(function (d, i) { thump({ t: t + d, from: rnd(1300, 1700), to: 900, gain: 0.04 * (v || 1) / (i + 1), decay: 0.03, wave: "triangle", dest: dest }); });
+    },
     hush: function () { A.hush(); },
     cannon: function () { A.cannon(); }
   };
@@ -228,7 +260,20 @@
     mosque: { air: [170, 0.05], room: true, ev: [["rustle", 5, 11, 0.6]] },
     roof: { air: [850, 0.05], kids: [10, 18, 0.22], ev: [["flutter", 20, 35, 0.3]] },
     workshop: { air: [200, 0.03], hum: 0.01, ev: [["creak", 8, 16, 0.6]] },
-    hub: { air: [750, 0.035], kids: [14, 24, 0.14] }
+    map: { air: [650, 0.06], murmur: 0.07, kids: [9, 16, 0.18], ev: [["bounce", 6, 12, 0.35], ["flutter", 12, 22, 0.5], ["clink", 8, 14, 0.25]] },
+    // the places of the walking hara
+    square: { air: [620, 0.06], murmur: 0.12, ev: [["flutter", 8, 16, 0.5], ["clink", 6, 12, 0.3], ["chirp", 4, 10, 0.4]] },
+    market: { air: [600, 0.05], murmur: 0.3, sizzle: 0.03, simmer: 0.02, ev: [["ladle", 4, 9, 0.5], ["bowl", 3, 7, 0.5], ["clink", 3, 7, 0.35]] },
+    cafe: { air: [420, 0.04], murmur: 0.2, ev: [["glass", 2.5, 6, 0.6], ["dice", 3, 7, 0.8], ["clink", 2, 5, 0.4], ["chirp", 6, 14, 0.3]] },
+    garden: { air: [900, 0.045], ev: [["chirp", 1.5, 5, 0.6], ["rustle", 4, 9, 0.6]] },
+    workshopOpen: { air: [260, 0.03], murmur: 0.05, ev: [["creak", 9, 16, 0.4], ["chirp", 6, 14, 0.3]] },
+    hub: { air: [750, 0.035], kids: [14, 24, 0.14] },
+    // inside: food places follow the fast (byTime scales the crowd), the mosque is a hush with a long echo
+    homeIn: { air: [260, 0.04], simmer: 0.012, ev: [["clink", 7, 14, 0.4], ["creak", 16, 28, 0.4], ["chirp", 9, 18, 0.25]] },
+    bakeryIn: { air: [280, 0.05], roar: 0.08, murmur: 0.24, byTime: { asr: 0.7, pre: 1, maghrib: 0.1, night: 0.35 }, ev: [["coins", 5, 10, 0.6], ["rustle", 4, 8, 0.8]] },
+    mosqueIn: { air: [160, 0.035], room: true, murmur: 0.05, byTime: { asr: 0.2, pre: 0.2, maghrib: 0.6, night: 1 }, ev: [["rustle", 6, 12, 0.5]] },
+    koshariIn: { air: [320, 0.04], murmur: 0.34, sizzle: 0.025, byTime: { asr: 0.08, pre: 0.45, maghrib: 1, night: 1 }, ev: [["bowl", 1.2, 3.2, 0.7], ["clink", 2, 5, 0.4]] },
+    kebabIn: { air: [480, 0.04], murmur: 0.28, sizzle: 0.06, byTime: { asr: 0.1, pre: 0.4, maghrib: 1, night: 1 }, kids: [12, 22, 0.18], ev: [["clink", 2.5, 6, 0.45]] }
   };
 
   function loopNoise(kind, filterType, freq, level, dest) {
@@ -245,7 +290,7 @@
     b.out.gain.value = 0.0001;
     b.out.connect(ambBus);
     if (c.room) b.out.connect(reverb);
-    var nightDrop = time === "night" ? 0.7 : 1;
+    var nightDrop = time === "night" ? 0.7 : 1, crowd = c.byTime ? (c.byTime[time] == null ? 1 : c.byTime[time]) : 1;
     b.sources.push(loopNoise("brown", "lowpass", c.air[0], c.air[1] * nightDrop, b.out));
     if (c.roar) {
       var r = loopNoise("brown", "lowpass", 160, c.roar, b.out);
@@ -265,7 +310,7 @@
           var s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
           s.buffer = samples.bakery; s.loop = true; s.playbackRate.value = rate;
           f.type = "lowpass"; f.frequency.value = 1700 - i * 300;
-          g.gain.value = c.murmur * (i ? 0.7 : 1);
+          g.gain.value = c.murmur * crowd * (i ? 0.7 : 1);
           s.connect(f); f.connect(g); g.connect(b.out);
           s.start(now(), Math.random() * samples.bakery.duration);
           b.sources.push(s);
@@ -276,7 +321,12 @@
     function every(min, max, fn) {
       (function go() { b.timers.push(setTimeout(function () { if (!b.dead && !hushed) fn(); go(); }, rnd(min, max) * 1000)); })();
     }
-    (c.ev || []).forEach(function (e) { every(e[1], e[2], function () { FX[e[0]](b.out, e[3] * 1.8); }); });
+    (c.ev || []).forEach(function (e) {
+      if (e[0] === "chirp" && time === "night") return; // the sparrows sleep
+      if (crowd < 0.15 && (e[0] === "bowl" || e[0] === "coins")) return; // nobody eating, nobody paying
+      var slow = crowd < 0.5 ? 1.8 : 1;
+      every(e[1] * slow, e[2] * slow, function () { FX[e[0]](b.out, e[3] * 1.8); });
+    });
     if (c.kids) every(c.kids[0], c.kids[1], function () { playSample("kids", { gain: c.kids[2], lowpass: 3200, rate: rnd(0.94, 1.04), dest: b.out }); });
     return b;
   }
@@ -408,6 +458,7 @@
   A.chime = function () { A.fx("chime"); };
   A.drum = function () { A.fx("drum"); };
   A.tap = function () { A.fx("tap"); };
+  A.step = function () { if (ctx && !muted) try { FX.step(now() + 0.01, 0.22 + Math.random() * 0.08); } catch (e) {} }; // footsteps on the map
   A.setMuted = function (m) {
     muted = !!m;
     if (ctx) master.gain.setTargetAtTime(muted ? 0 : 0.9, now(), 0.15);

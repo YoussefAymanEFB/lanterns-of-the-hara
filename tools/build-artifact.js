@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /*
-  Makes artifact.html from index.html for the shareable claude.ai prototype link.
+  Makes artifact.html from classic.html (the story-screen version) for the shareable claude.ai prototype link.
     node tools/build-artifact.js
   The artifact host adds its own <html>, <head>, <body>, charset and viewport,
   so those are removed here. Everything else (css/, js/, episodes/) is published as-is.
@@ -12,7 +12,7 @@ const path = require("path");
 const root = path.resolve(__dirname, "..");
 const TITLE = "عم صابر";
 
-let html = fs.readFileSync(path.join(root, "index.html"), "utf8");
+let html = fs.readFileSync(path.join(root, "classic.html"), "utf8");
 html = html
   .replace(/<!doctype html>\s*/i, "")
   .replace(/<\/?html[^>]*>\s*/gi, "")

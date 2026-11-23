@@ -11,6 +11,7 @@
   "use strict";
   var H = window.HARA = window.HARA || {};
   var art = H.art, audio = H.audio, COH = window.COH;
+  var MAP = H.map || null; // the walkable hara: only walk.html loads js/map.js
 
   // face: portrait in assets/faces/. Characters without one speak with just their name.
   var CAST = {
@@ -27,12 +28,13 @@
   };
   var FACES = ["saber", "saber_smile", "nemat", "hassan", "mama", "omyoussef", "youssef", "malak", "rizq"];
   var TOTAL = 30;
-  var STORE_KEY = "hara.v2";
+  var STORE_KEY = MAP ? "hara.walk.v1" : "hara.v2"; // the walking prototype keeps its own progress
   var SAMPLE_COUNTER = 12430;
 
   /* ---------------- state ---------------- */
-  function load() { try { return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; } catch (e) { return {}; } }
-  var saved = load();
+  function load(key) { try { return JSON.parse(localStorage.getItem(key)) || {}; } catch (e) { return {}; } }
+  var saved = load(STORE_KEY);
+  if (MAP && !saved.prefs) saved = { prefs: load("hara.v2").prefs }; // keep the name you already gave
   var S = {
     prefs: Object.assign({ name: "", gender: "", muted: false, noticeSeen: false }, saved.prefs || {}),
     done: saved.done || {},
@@ -127,6 +129,7 @@
       faceEl = $("face"), faceImg = $("faceImg");
   homeBtn.innerHTML = ICON_HOME;
   art.attach(stage);
+  if (MAP) MAP.attach(stage);
 
   function renderMute() {
     muteBtn.innerHTML = S.prefs.muted ? ICON_MUTE : ICON_SOUND;
@@ -191,6 +194,7 @@
     var ep = H.episodes[epId];
     if (!ep) return;
     if (!resume || !S.run || S.run.ep !== epId || !ep.nodes[S.run.node]) S.run = { ep: epId, node: ep.start, flags: {}, log: [], gifts: [] };
+    if (MAP) S.run.flags.walking = true; // lines can skip what the player just walked
     S.run.gifts = S.run.gifts || [];
     save();
     cur.ep = ep;
@@ -203,11 +207,18 @@
     focusEl(panel);
   }
 
-  function enterNode(id) {
+  function enterNode(id, arrived) {
     var node = cur.ep.nodes[id];
     if (!node) { if (window.console) console.error("Missing node:", id); return; }
     S.run.node = id;
+    // walking mode: the player walks to this place on the map first
+    if (MAP && node.walk && !arrived) { save(); walkTo(id, node); return; }
     if (node.set) for (var k in node.set) S.run.flags[k] = node.set[k];
+    if (MAP) {
+      S.run.flags["at_" + node.place] = true;
+      S.run.at = MAP.spotFor(node.place, node.time);
+      leaveMap();
+    }
     save();
     cur.node = node;
     cur.lines = (node.lines || []).filter(function (l) { return typeof l === "string" || cond(l.if); });
@@ -286,7 +297,79 @@
     if (fx === "ball" || fx === "kick") COH.haptic("light");
   }
 
+  /* ---------------- walking the hara (walk.html) ---------------- */
+  function questList() {
+    return (cur.ep.quests || []).filter(function (q) { return cond(q.if); })
+      .map(function (q) { return { t: T(q.t), face: q.from, done: cond(q.done) }; });
+  }
+  // A short note when an errand appears or gets done.
+  function announceQuests() {
+    var seen = S.run.quests = S.run.quests || {}, news = [], done = [];
+    (cur.ep.quests || []).forEach(function (q, i) {
+      if (!cond(q.if)) return;
+      var st = cond(q.done) ? "done" : "open";
+      if (seen[i] === st) return;
+      if (st === "done") done.push(T(q.t)); else if (!seen[i] && i > 0) news.push(T(q.t));
+      seen[i] = st;
+    });
+    save();
+    var msgs = [];
+    if (done.length) msgs.push("✓ خلصت: " + done.join(" · "));
+    if (news.length) msgs.push("مهمة جديدة: " + news.join(" · "));
+    msgs.forEach(function (m, i) { setTimeout(function () { toast(m); audio.chime(); }, 900 + i * 3100); });
+  }
+  function openMap(o) {
+    cur.mode = "walk";
+    setFace(null);
+    choicesEl.textContent = "";
+    app.classList.remove("choosing", "giving");
+    app.classList.add("walking");
+    o.from = S.run.at != null ? S.run.at : "home";
+    o.fmt = T; o.cond = cond; o.fem = S.prefs.gender === "f";
+    o.quests = questList();
+    o.intro = !S.run.mapSeen;
+    o.day = +cur.ep.id || 1; // the hara looks the way it does on this day of Ramadan
+    o.onMove = function (n) { if (S.run) { S.run.at = n; save(); } };
+    o.onFlag = function (k, news) {
+      S.run.flags[k] = true; save();
+      if (news) { toast(T(news)); audio.chime(); }
+    };
+    S.run.mapSeen = true;
+    save();
+    announceQuests();
+    audio.scene("map", o.time);
+    MAP.open(o);
+  }
+  function leaveMap() {
+    if (!MAP || !app.classList.contains("walking")) return;
+    app.classList.remove("walking");
+    MAP.close();
+    sceneKey = ""; // bring the place's picture and sound back
+  }
+  function walkTo(id, node) {
+    setClock(node.clock);
+    openMap({
+      time: node.time, task: T(node.walk.task), goal: node.walk.goal || node.walk.to, trigger: node.walk.to,
+      onArrive: function () {
+        COH.track("walk_arrive", { episode: cur.ep.id, node: id });
+        enterNode(id, true);
+        focusEl(panel);
+      }
+    });
+  }
+  // A choice made by walking: each option is a place on the map.
+  function walkChoice(ch) {
+    var opts = ch.options.filter(function (o) { return cond(o.if); });
+    openMap({
+      time: cur.node.time, task: T(ch.prompt),
+      choices: opts.map(function (o) {
+        return { spot: o.walk, label: T(o.t), pick: function () { cur.mode = "choice"; choose(o); } };
+      })
+    });
+  }
+
   function showChoices(ch, isGive) {
+    if (MAP && !isGive && ch.options.every(function (o) { return o.walk; })) { walkChoice(ch); return; }
     cur.mode = isGive ? "give" : "choice";
     hint.hidden = true;
     setFace(null);
@@ -397,6 +480,7 @@
   function endEpisode() {
     var ep = cur.ep, run = S.run, gifts = (run.gifts || []).slice(), log = run.log.slice();
     var total = gifts.reduce(function (a, g) { return a + (g.status === "paid" ? g.price : 0); }, 0);
+    leaveMap();
     cur.mode = "idle";
     setFace(null);
     S.done[ep.id] = { gifts: gifts.map(function (g) { return g.key; }), total: total, at: Date.now() };
@@ -482,6 +566,7 @@
   }
 
   function showHub() {
+    leaveMap();
     cur.mode = "idle";
     app.classList.remove("choosing", "giving");
     setFace(null);
@@ -505,7 +590,7 @@
     showOverlay("screen-hub", [
       hubArt,
       h("div", { "class": "hub-body" }, [
-        h("p", { "class": "hub-k", text: "نسخة تجريبية · الحلقة الأولى" }),
+        h("p", { "class": "hub-k", text: MAP ? "نسخة تجريبية · امشي في الحارة بنفسك" : "نسخة تجريبية · الحلقة الأولى" }),
         h("h1", { "class": "hub-title", text: "فوانيس الحارة" }),
         h("p", { "class": "hub-sub", text: "كل يوم في رمضان، حد في الحارة محتاجك. نوّرت " + ar(lit) + " من " + ar(TOTAL) + " فانوس." }),
         card,

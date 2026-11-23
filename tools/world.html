@@ -1,0 +1,45 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Hara world preview</title>
+<style>body{margin:0;background:#222}canvas{image-rendering:pixelated;display:block}</style>
+<body>
+<canvas id="c"></canvas>
+<script src="../js/hara-art.js"></script>
+<script src="../js/hara-props.js"></script>
+<script src="../js/hara-world.js"></script>
+<script>
+// Static preview of the whole hara, for checking the art.
+// ?s=3 scale · ?t=asr|pre|maghrib|night · ?d=1..30 day of Ramadan · ?grid shows where you can walk · ?places outlines the places
+var q = new URLSearchParams(location.search), S = +(q.get("s") || 3), time = q.get("t") || "asr", day = +(q.get("d") || 1);
+var WD = HARA.world, Wd = WD.build(), A = HARA.pix, c = document.getElementById("c"), g = c.getContext("2d");
+c.width = Wd.W * S; c.height = Wd.HGT * S; g.imageSmoothingEnabled = false;
+g.scale(S, S);
+Wd.houses.forEach(function (b) { b.setDay(day); });
+g.drawImage(Wd.sky(time, day), 0, 0);
+g.drawImage(Wd.ground, 0, 150, Wd.W, Wd.HGT - 150, 0, 150, Wd.W, Wd.HGT - 150);
+var props = Wd.props.filter(function (p) { return WD.inDays(p.days, day); });
+var list = [], over = [];
+Wd.houses.forEach(function (b) { list.push({ y: b.base, d: function () { g.drawImage(b.canvas, b.x, b.y); } }); });
+list.push({ y: Wd.mosque.base, d: function () { g.drawImage(Wd.mosque.canvas, Wd.mosque.x, Wd.mosque.y); } });
+list.push({ y: Wd.minaret.base, d: function () { g.drawImage(Wd.minaret.canvas, Wd.minaret.x, Wd.minaret.y); } });
+props.forEach(function (p) {
+  var sp = A.prop(p.k, Object.assign({ set: true }, p.o || {}));
+  if (!sp) { console.warn("no prop", p.k); return; }
+  if (p.decal) { g.drawImage(sp, p.x, p.y); return; }
+  var d = function () { g.drawImage(sp, p.x, p.y - (p.z || 0) - sp.height + 3); };
+  if (p.canopy) over.push(d); else list.push({ y: p.y, d: d });
+});
+list.sort(function (a, b) { return a.y - b.y; }).forEach(function (o) { o.d(); });
+over.forEach(function (d) { d(); });
+if (q.has("grid")) {
+  g.fillStyle = "rgba(60,255,120,0.28)";
+  Wd.walk.forEach(function (w) { var r = Array.isArray(w) ? w : (WD.inDays(w.days, day) ? w.r : null); if (r) g.fillRect(r[0], r[1], r[2], r[3]); });
+  g.fillStyle = "rgba(255,40,40,0.5)";
+  props.forEach(function (p) { if (!p.block || p.canopy) return; var sp = A.prop(p.k, p.o || {}); g.fillRect(p.x + (sp.width - p.block[0]) / 2, p.y - p.block[1], p.block[0], p.block[1] + 1); });
+  g.fillStyle = "#FF0"; Object.keys(WD.SPOTS).forEach(function (k) { var s = WD.SPOTS[k].stand; g.fillRect(s[0] - 1, s[1] - 1, 3, 3); });
+}
+if (q.has("places")) {
+  g.lineWidth = 1 / S * 2; g.font = "8px sans-serif";
+  WD.PLACES.forEach(function (P, i) { g.strokeStyle = ["#f0f", "#0ff", "#ff0", "#f80", "#0f0", "#08f", "#f00", "#fff"][i % 8]; g.strokeRect(P.r[0] + 0.5, P.r[1] + 0.5, P.r[2] - 1, P.r[3] - 1); g.fillStyle = g.strokeStyle; g.fillText(P.id, P.r[0] + 3, P.r[1] + 10); });
+}
+</script>

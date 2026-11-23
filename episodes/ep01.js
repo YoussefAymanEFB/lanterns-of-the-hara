@@ -13,6 +13,13 @@
   Line fields: t (text), who (speaker id), face (portrait override),
   if ("flag" / "!flag"), fx (sound or effect), go (switch picture mid-node).
   {m|f} picks the masculine or feminine form. {name} is the player's name.
+
+  Walking version (walk.html) only, ignored by the story version:
+    walk: { to, goal, task }  the player walks there on the map before this node starts.
+                              to: the spot that starts the scene when you pass it; goal: where the lantern shows (defaults to to).
+    option.walk               a choice made by walking to one of the places.
+    quests                    today's errands, shown on the map. if: when it appears, done: when it's ticked.
+                              Every place the story visits sets an "at_<place>" flag.
 */
 window.HARA = window.HARA || {}; HARA.episodes = HARA.episodes || {};
 HARA.episodes[1] = {
@@ -21,6 +28,12 @@ HARA.episodes[1] = {
   shareText: "عم صابر النجار كان أول واحد يعلّق عيش للغلابة في الحارة… النهارده هو اللي محتاج. العب الحلقة ١ من فوانيس الحارة على COH.",
   next: { id: 2, title: "سحور أم يوسف", face: "omyoussef",
     teaser: "الساعة ٣ الفجر. طبلة المسحراتي بتعدّي على بيت أم يوسف… وجوّه البيت مفيش غير شاي وتلات أرغفة." },
+
+  quests: [
+    { from: "mama", t: "هات ٢٠ رغيف من فرن عم حسن", done: "at_bakery" },
+    { from: "nemat", if: "nemat", t: "ودّي رغيفين لعم صابر", done: "at_steps" },
+    { from: "hassan", if: "at_bakery", t: "{دوّر|دوّري} على عم صابر", done: "at_steps" }
+  ],
 
   nodes: {
 
@@ -66,8 +79,9 @@ HARA.episodes[1] = {
     /* ---------- 2 · ALLEY ---------- */
     alley: {
       place: "alley", time: "asr", clock: "فاضل ساعة وربع على المغرب",
+      walk: { to: "kids", goal: "bakery", task: "{انزل|انزلي} هات ٢٠ رغيف من فرن عم حسن، قبل ما الطابور يطول" },
       lines: [
-        { fx: "stairs", t: "تلات أدوار سلالم. كل سلمة ليها صوت {تعرفه من وانت صغير|تعرفيه من وانتي صغيرة}." },
+        { fx: "stairs", if: "!walking", t: "تلات أدوار سلالم. كل سلمة ليها صوت {تعرفه من وانت صغير|تعرفيه من وانتي صغيرة}." },
         { fx: "kids", t: "والحارة صاحية: الزينة متعلقة من بلكونة لبلكونة، والحمام بيلف فوق، والعيال عاملين ماتش ولا كأس العالم." },
         { who: "youssef", t: "«خد عندك!»" },
         { fx: "ball", t: "الكورة جاية في وشك. بالظبط في وشك." }
@@ -105,6 +119,7 @@ HARA.episodes[1] = {
     /* ---------- 3 · BAKERY · GIVE 1 ---------- */
     bakery: {
       place: "bakery", time: "pre", clock: "فاضل ساعة على المغرب",
+      walk: { to: "bakery", task: "{كمّل|كمّلي} على فرن عم حسن. الطابور بيطول" },
       lines: [
         { fx: "bakery", t: "فرن عم حسن قبل الفطار بساعة: زحمة، وحر، وريحة عيش سخن تخلي الصيام امتحان." },
         { who: "hassan", t: "«واحد واحد يا جماعة! العيش مش هيطير! … هو بيطير، بس مش دلوقتي!»" },
@@ -192,6 +207,7 @@ HARA.episodes[1] = {
     /* ---------- 4 · THE MOSQUE STEPS ---------- */
     steps: {
       place: "steps", time: "pre", clock: "فاضل نص ساعة على المغرب",
+      walk: { to: "steps", task: "{دوّر|دوّري} على عم صابر قبل المغرب. الناس بتقول إنه عند الجامع" },
       lines: [
         { fx: "street", t: "قدام الجامع، الحارة بتجري: صواني رايحة وجاية، وعيال بتعلّق زينة، والمائدة بتتفرش." },
         "وعلى السلم… عم صابر. وجنبه صندوق العِدّة بتاعه، مفتوح.",
@@ -376,9 +392,9 @@ HARA.episodes[1] = {
         { who: "saber", face: "saber_smile", t: "«الليلة لسه طويلة يا {ابني|بنتي}.»" }
       ],
       choice: { prompt: "{هتروح|هتروحي} فين؟", options: [
-        { t: "التراويح في الجامع", log: "{صليت|صليتي} التراويح", next: "n_mosque" },
-        { t: "السطوح مع العيال والفوانيس", log: "{طلعت|طلعتي} السطوح مع العيال", next: "n_roof" },
-        { t: "{تمشّي|تمشّي} عم صابر لحد ورشته", log: "{مشيت|مشيتي} عم صابر لورشته", next: "n_workshop" }
+        { t: "التراويح في الجامع", walk: "mosque", log: "{صليت|صليتي} التراويح", next: "n_mosque" },
+        { t: "السطوح مع العيال والفوانيس", walk: "roof", log: "{طلعت|طلعتي} السطوح مع العيال", next: "n_roof" },
+        { t: "{تمشّي|تمشّي} عم صابر لحد ورشته", walk: "workshop", log: "{مشيت|مشيتي} عم صابر لورشته", next: "n_workshop" }
       ]}
     },
 

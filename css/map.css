@@ -1,0 +1,175 @@
+/* فوانيس الحارة · the walkable hara (loaded only by walk.html, with js/hara-art.js, js/hara-world.js, js/map.js) */
+
+/* while walking, the picture area takes the whole screen and the story panel steps aside */
+#app.walking .stage { height: 100% !important; }
+#app.walking .panel { pointer-events: none; opacity: 0; transition: opacity 0.3s ease; }
+.stage::before, .stage::after { transition: opacity 0.5s ease; }
+#app.walking .stage::before, #app.walking .stage::after { opacity: 0; }
+#app.walking .place, #app.walking .face { opacity: 0 !important; }
+#app.walking .toast { top: calc(env(safe-area-inset-top, 0px) + 176px); bottom: auto; }
+
+.map { position: absolute; inset: 0; overflow: hidden; z-index: 2; background: #1E1622; opacity: 0; visibility: hidden; transition: opacity 0.6s ease, visibility 0s linear 0.6s; }
+.map.on { opacity: 1; visibility: visible; transition: opacity 0.6s ease; }
+.mp-view { position: absolute; inset: 0; overflow: hidden; isolation: isolate; touch-action: none; cursor: pointer; -webkit-user-select: none; user-select: none; }
+.mp-view canvas { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; pointer-events: none; }
+.mp-light { mix-blend-mode: multiply; }
+.mp-glow { mix-blend-mode: screen; }
+.mp-view::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(130% 95% at 50% 52%, rgba(0, 0, 0, 0) 62%, rgba(20, 10, 28, 0.42) 100%); }
+
+/* ---------- the cozy parchment-and-wood look of the map's panels ---------- */
+.mp-ui { position: absolute; inset: 0; overflow: hidden; pointer-events: none; --wood: #5A3624; --wood-d: #3A2216; --gilt: #E8B65A; --paper: #FBEFD5; --paper-2: #F3DFB6; --ink-w: #3A2418; --red: #B5473B; }
+.mp-task, .mp-qlist, .mp-dlg, .mp-ch {
+  background: linear-gradient(180deg, var(--paper) 0%, var(--paper-2) 100%);
+  border: 3px solid var(--wood); border-radius: 12px;
+  box-shadow: inset 0 0 0 2px var(--gilt), inset 0 0 0 4px rgba(255, 248, 230, 0.8), 0 4px 0 var(--wood-d), 0 12px 26px rgba(20, 8, 24, 0.45);
+  color: var(--ink-w);
+}
+
+.mp-task {
+  position: absolute; top: calc(env(safe-area-inset-top, 0px) + 54px); left: max(12px, env(safe-area-inset-left, 0px)); right: max(12px, env(safe-area-inset-right, 0px));
+  display: flex; align-items: center; gap: 10px; padding: 7px 9px 7px 12px; pointer-events: auto;
+  animation: mpDrop 0.55s cubic-bezier(.2, 1.4, .4, 1) both 0.15s;
+}
+.mp-task-tx { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.mp-task-k { font-family: var(--f-title); font-size: 0.82rem; font-weight: 700; color: var(--red); line-height: 1.15; }
+.mp-task-t { margin: 0; font-size: 0.9rem; line-height: 1.45; font-weight: 500; }
+.mp-task-acts { flex: none; display: grid; gap: 5px; justify-items: stretch; }
+.mp-go {
+  appearance: none; cursor: pointer; border: 2px solid var(--wood); border-radius: 10px; padding: 4px 14px;
+  background: linear-gradient(180deg, #FFD978 0%, #F2B23E 100%); color: var(--ink-w); font-weight: 700; font-size: 0.95rem;
+  box-shadow: inset 0 -3px 0 rgba(150, 80, 20, 0.35), 0 3px 0 var(--wood-d);
+}
+.mp-go:active { transform: translateY(2px); box-shadow: inset 0 -2px 0 rgba(150, 80, 20, 0.35), 0 1px 0 var(--wood-d); }
+.mp-qbtn {
+  appearance: none; cursor: pointer; border: 2px solid rgba(90, 54, 36, 0.5); border-radius: 9px; padding: 2px 7px;
+  background: rgba(255, 255, 255, 0.45); color: var(--wood); font-size: 0.76rem; font-weight: 600; white-space: nowrap;
+}
+.mp-qn { display: inline-grid; place-items: center; min-width: 18px; height: 18px; margin-inline-start: 5px; padding: 0 4px; border-radius: 9px; background: var(--red); color: #FFF3D6; font-size: 0.72rem; font-weight: 700; line-height: 1; vertical-align: 1px; }
+.mp-qn.ok { background: #4C9A4C; }
+.mp-qlist {
+  position: absolute; top: calc(env(safe-area-inset-top, 0px) + 124px); left: max(12px, env(safe-area-inset-left, 0px)); right: max(12px, env(safe-area-inset-right, 0px));
+  margin: 0; padding: 12px 14px; list-style: none; display: grid; gap: 10px; pointer-events: auto; animation: mpDrop 0.35s ease both; z-index: 4;
+}
+.mp-qlist li { display: flex; align-items: center; gap: 10px; font-size: 0.94rem; line-height: 1.5; }
+.mp-qlist img { flex: none; width: 38px; height: 38px; border-radius: 8px; object-fit: cover; border: 2px solid var(--wood); box-shadow: inset 0 0 0 1px var(--gilt); }
+.mp-qlist span { flex: 1; }
+.mp-qlist .ck { flex: none; position: relative; width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--wood); background: rgba(255, 255, 255, 0.5); }
+.mp-qlist li.done span { color: #8A7060; text-decoration: line-through; }
+.mp-qlist li.done .ck { background: #4C9A4C; border-color: #2E6A34; }
+.mp-qlist li.done .ck::after { content: ""; position: absolute; left: 6px; top: 2px; width: 6px; height: 11px; border: solid #fff; border-width: 0 2.5px 2.5px 0; transform: rotate(45deg); }
+
+.mp-qlist .mp-qh { display: block; margin: 4px 0 -4px; font-family: var(--f-title); font-size: 0.92rem; color: var(--red); }
+.mp-qlist li.deed { font-size: 0.9rem; }
+.mp-qstar { flex: none; width: 22px; text-align: center; color: #C8963E; font-size: 1rem; }
+.mp-qlist li.done .mp-qstar { color: #4C9A4C; }
+.mp-qlist .mp-qmem { display: block; padding-top: 8px; border-top: 1px dashed rgba(90, 54, 36, 0.35); color: #7A5A44; font-size: 0.84rem; }
+/* the list's own header, with a close button */
+.mp-qlist .mp-qtop { display: flex; align-items: center; justify-content: space-between; margin: -2px -4px 0 -4px; padding-bottom: 6px; border-bottom: 1px dashed rgba(90, 54, 36, 0.35); }
+.mp-qtop b { font-family: var(--f-title); font-size: 1rem; color: var(--wood); }
+.mp-qx {
+  appearance: none; cursor: pointer; flex: none; display: grid; place-items: center; width: 34px; height: 34px; padding: 0 0 3px;
+  border: 2px solid var(--wood); border-radius: 50%; background: linear-gradient(180deg, #FFF6E0, #F0D9AE); color: var(--wood);
+  font-size: 1.35rem; font-weight: 700; line-height: 1; box-shadow: 0 2px 0 var(--wood-d);
+}
+.mp-qx:active { transform: translateY(2px); box-shadow: none; }
+/* "where?": shows you, then walks you there */
+.mp-qgo {
+  appearance: none; cursor: pointer; flex: none; border: 2px solid var(--wood); border-radius: 9px; padding: 3px 10px 4px;
+  background: linear-gradient(180deg, #FFD978 0%, #F2B23E 100%); color: var(--ink-w); font-weight: 700; font-size: 0.82rem;
+  box-shadow: inset 0 -2px 0 rgba(150, 80, 20, 0.35), 0 2px 0 var(--wood-d);
+}
+.mp-qgo:active { transform: translateY(2px); box-shadow: inset 0 -1px 0 rgba(150, 80, 20, 0.35); }
+.mp-qlist li.deed.on { margin: -4px -6px; padding: 4px 6px; border-radius: 9px; background: rgba(255, 214, 120, 0.35); }
+.mp-qbtn.on { background: var(--wood); color: #FFE3A0; border-color: var(--wood); }
+/* the arrow turns gold when it's pointing at a small deed you asked about */
+.mp-arrow.deed { background: radial-gradient(circle at 40% 35%, #FFFCEB, #FFE08A 72%); box-shadow: 0 0 0 5px rgba(255, 236, 160, 0.45), 0 3px 0 #3A2216, 0 8px 18px rgba(0, 0, 0, 0.45); }
+
+/* the day of Ramadan, a little wooden tab on top of the errand card */
+.mp-day {
+  position: absolute; top: -15px; inset-inline-start: 16px; display: inline-flex; align-items: center; gap: 6px;
+  padding: 1px 10px 3px; border-radius: 9px 9px 0 0; background: var(--wood); color: #FFE3A0;
+  font-size: 0.74rem; font-weight: 700; line-height: 1.4; box-shadow: inset 0 1px 0 rgba(255, 220, 160, 0.25);
+}
+.mp-day::before { content: ""; width: 9px; height: 9px; border-radius: 50%; box-shadow: 3px -1px 0 0 var(--gilt); transform: translateX(-2px); }
+
+/* the name of the place you walk into: a painted sign that swings down for a moment */
+.mp-place-wrap { position: absolute; left: 24px; right: 24px; top: calc(env(safe-area-inset-top, 0px) + 134px); z-index: 1; display: flex; justify-content: center; pointer-events: none; }
+.mp-place {
+  position: relative; display: grid; justify-items: center; gap: 0; min-width: 150px; max-width: 100%;
+  padding: 6px 22px 8px; border-radius: 12px; text-align: center;
+  background: linear-gradient(180deg, rgba(58, 34, 22, 0.92), rgba(42, 24, 16, 0.92));
+  border: 2px solid rgba(232, 182, 90, 0.75); box-shadow: inset 0 0 0 1px rgba(255, 230, 170, 0.15), 0 10px 24px rgba(20, 8, 24, 0.45);
+  visibility: hidden; opacity: 0; transform: translateY(-14px) rotate(-1.5deg); transform-origin: 50% -30px;
+  transition: opacity 0.4s ease, transform 0.55s cubic-bezier(.2, 1.5, .4, 1), visibility 0s linear 0.4s;
+}
+.mp-place::before, .mp-place::after { content: ""; position: absolute; top: -12px; width: 2px; height: 12px; background: rgba(232, 182, 90, 0.7); }
+.mp-place::before { left: 22%; } .mp-place::after { right: 22%; }
+.mp-place.on { visibility: visible; opacity: 1; transform: none; transition: opacity 0.4s ease, transform 0.55s cubic-bezier(.2, 1.5, .4, 1); }
+.mp-place b { font-family: var(--f-title); font-size: 1.45rem; line-height: 1.25; color: #FFD98A; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35); }
+.mp-place span { font-size: 0.82rem; line-height: 1.4; color: #F4E4C4; }
+.mp-place.news { background: linear-gradient(180deg, rgba(150, 52, 44, 0.95), rgba(110, 34, 30, 0.95)); border-color: #FFD98A; }
+.mp-place.news b { font-size: 1.05rem; color: #FFE7A0; }
+.mp-place.news span { font-size: 0.98rem; font-weight: 600; color: #FFF6E2; }
+.mp-place.deed { background: linear-gradient(180deg, rgba(46, 96, 60, 0.95), rgba(30, 70, 44, 0.95)); border-color: #BFE6A0; }
+.mp-place.deed b { font-family: inherit; font-size: 0.98rem; font-weight: 700; color: #F4FFE8; }
+.mp-place.deed span { color: #D8F0C8; }
+
+/* a found secret: a little gold around the words */
+.mp-dlg.secret { box-shadow: inset 0 0 0 2px var(--gilt), inset 0 0 0 4px rgba(255, 248, 230, 0.8), 0 0 0 3px rgba(255, 214, 120, 0.55), 0 4px 0 var(--wood-d), 0 12px 30px rgba(255, 190, 80, 0.35); }
+.mp-dlg.secret .mp-dlg-n { background: #C8963E; box-shadow: 0 2px 0 #7A5A24; font-family: inherit; font-size: 0.86rem; padding: 3px 12px 4px; }
+
+/* the arrow at the edge that points to your errand */
+.mp-arrow {
+  position: absolute; left: 0; top: 0; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; cursor: pointer; padding: 0;
+  display: grid; place-items: center; background: radial-gradient(circle at 40% 35%, #FFE9A8, #F2B23E 70%); border: 3px solid var(--wood, #5A3624);
+  box-shadow: 0 0 0 5px rgba(255, 210, 110, 0.28), 0 3px 0 #3A2216, 0 8px 18px rgba(0, 0, 0, 0.45);
+  opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+}
+.mp-arrow.on { opacity: 1; pointer-events: auto; animation: mpPulse 1.6s ease-in-out infinite; }
+.mp-arrow-i { display: block; width: 22px; height: 22px; }
+.mp-arrow-i svg { display: block; width: 100%; height: 100%; }
+
+/* walking to choose */
+.mp-choices { position: absolute; left: max(12px, env(safe-area-inset-left, 0px)); right: max(12px, env(safe-area-inset-right, 0px)); bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); display: grid; gap: 8px; pointer-events: auto; transition: opacity 0.25s ease; }
+.mp-choices.dim { opacity: 0; pointer-events: none; }
+.mp-ch {
+  appearance: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 10px;
+  padding: 10px 14px; text-align: right; font: inherit; font-size: 0.98rem; line-height: 1.45; font-weight: 500;
+  animation: mpRise 0.4s ease both;
+}
+.mp-ch:nth-child(2) { animation-delay: 0.07s; } .mp-ch:nth-child(3) { animation-delay: 0.14s; }
+.mp-ch:active { transform: translateY(2px); }
+.mp-ch-w { flex: none; font-family: var(--f-title); font-size: 0.86rem; color: var(--red); }
+
+.mp-hint {
+  position: absolute; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 20px); transform: translateX(-50%);
+  width: max-content; max-width: calc(100% - 40px); margin: 0; padding: 9px 16px; border-radius: 12px;
+  background: rgba(36, 20, 30, 0.86); color: #FFF0CF; font-size: 0.86rem; line-height: 1.5; text-align: center; border: 2px solid rgba(232, 182, 90, 0.6);
+  pointer-events: none; transition: opacity 0.5s ease; animation: fadeIn 0.6s ease both 3.4s;
+}
+.mp-hint.gone { opacity: 0; animation: none; }
+
+/* talking: a portrait and the words, like a page of a storybook */
+.mp-dlg {
+  position: absolute; left: max(10px, env(safe-area-inset-left, 0px)); right: max(10px, env(safe-area-inset-right, 0px)); bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+  display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px 14px; pointer-events: auto; cursor: pointer; z-index: 2;
+  animation: mpRise 0.28s cubic-bezier(.2, 1.3, .4, 1) both;
+}
+.mp-dlg-f { flex: none; width: 82px; height: 82px; border-radius: 9px; overflow: hidden; border: 3px solid var(--wood); box-shadow: inset 0 0 0 2px var(--gilt); background: #2E4A5A; }
+.mp-dlg-f img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.mp-dlg.noface .mp-dlg-f { display: none; }
+.mp-dlg-b { flex: 1; min-width: 0; position: relative; padding-bottom: 6px; }
+.mp-dlg-n { display: inline-block; margin-bottom: 5px; padding: 1px 12px 3px; border-radius: 8px; font-family: var(--f-title); font-size: 1.05rem; font-weight: 700; color: #FFF3D6; background: var(--red); box-shadow: 0 2px 0 #7A2A24; }
+.mp-dlg-t { margin: 0; min-height: 3.1em; font-size: 1.02rem; line-height: 1.6; font-weight: 500; }
+.mp-dlg-more { position: absolute; left: 0; bottom: -6px; width: 0; height: 0; border: 7px solid transparent; border-top: 9px solid var(--red); opacity: 0; transition: opacity 0.2s ease; }
+.mp-dlg.done .mp-dlg-more { opacity: 1; animation: mpBob 0.9s ease-in-out infinite; }
+
+@keyframes mpDrop { from { opacity: 0; transform: translateY(-14px); } to { opacity: 1; transform: none; } }
+@keyframes mpRise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes mpBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(3px); } }
+@keyframes mpPulse { 0%, 100% { box-shadow: 0 0 0 5px rgba(255, 210, 110, 0.28), 0 3px 0 #3A2216, 0 8px 18px rgba(0, 0, 0, 0.45); } 50% { box-shadow: 0 0 0 9px rgba(255, 210, 110, 0.12), 0 3px 0 #3A2216, 0 8px 18px rgba(0, 0, 0, 0.45); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .mp-task, .mp-qlist, .mp-ch, .mp-dlg, .mp-arrow.on, .mp-dlg.done .mp-dlg-more { animation: none !important; }
+  .mp-place, .mp-place.on { transition: opacity 0.3s ease, visibility 0s; transform: none; }
+}
