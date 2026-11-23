@@ -388,6 +388,7 @@
         audio.fx("cannon"); COH.haptic("heavy");
         C.flash("#FFF2D0", 1100); C.shake(700, 2.2);
         p = wait(900); break;
+      case "flag": S.run.flags[c[1]] = c[2] !== false; save(); break; // remember something mid-scene, e.g. for the errands list
       case "fn": p = c[1](C, MAP); break;
     }
     return par || !p ? Promise.resolve() : p;

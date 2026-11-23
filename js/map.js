@@ -55,7 +55,7 @@
   var AMB_IN = { asr: [246, 238, 224], pre: [248, 220, 190], maghrib: [164, 136, 160], night: [122, 112, 152] };
   var ON_IN = { asr: 0.35, pre: 0.5, maghrib: 1, night: 1 };
   var NAMES = { mama: "ماما", sheikh: "الشيخ عبد الله", abuyasser: "أبو ياسر", sayed: "عم سيد", kebabgi: "الكبابجي", bashir: "عم بشير", sobhy: "صبحي",
-    hassan: "عم حسن", saber: "عم صابر", nemat: "الحاجة نعمات", youssef: "يوسف", malak: "ملك", omyoussef: "أم يوسف", rizq: "المعلم رزق", m3: "أستاذ عادل" };
+    hassan: "عم حسن", saber: "عم صابر", nemat: "الحاجة نعمات", youssef: "يوسف", malak: "ملك", omyoussef: "أم يوسف", rizq: "المعلم رزق", m3: "أستاذ عادل", zaki: "عم زكي" };
   var FACES = { mama: "mama", hassan: "hassan", saber: "saber", nemat: "nemat", youssef: "youssef", malak: "malak", omyoussef: "omyoussef", rizq: "rizq" };
 
   /* ---------------- small helpers ---------------- */
@@ -284,6 +284,7 @@
     itemImg.coins = A.sprite(12, 8, function (P) { P.el(1, 3, 5, 4, "#C8963E"); P.el(5, 2, 5, 4, "#F2C76C"); P.el(3, 1, 5, 4, "#FFE08A"); });
     itemImg.plate = A.sprite(14, 9, function (P) { P.el(1, 3, 12, 5, "#F4EFE4"); P.el(3, 2, 8, 4, "#C8A060"); P.r(5, 2, 4, 1, "#E8503F"); P.p(7, 1, "#6EBE58"); });
     itemImg.lantern = A.sprite(9, 13, function (P) { P.r(4, 1, 1, 2, "#8A6224"); P.r(2, 3, 5, 1, "#C8963E"); P.r(2, 4, 5, 5, "#FFD25A"); P.r(3, 5, 1, 3, "#FFF0B0"); P.r(2, 9, 5, 1, "#C8963E"); P.r(4, 10, 1, 1, "#8A6224"); });
+    itemImg.kunafa = A.sprite(14, 10, function (P) { P.r(1, 5, 12, 4, "#E8DCC0"); P.r(1, 5, 12, 1, "#F6EEDA"); P.r(1, 8, 12, 1, "#C8B898"); P.el(2, 1, 10, 6, "#E8B860"); P.r(4, 2, 2, 1, "#F6D890"); P.r(7, 3, 3, 1, "#F6D890"); P.p(5, 4, "#C8903A"); P.p(9, 2, "#C8903A"); P.p(3, 3, "#C8903A"); });
     itemImg.note = A.sprite(10, 9, function (P) { P.r(1, 2, 8, 6, "#F4EFE4"); P.r(2, 4, 5, 1, "#8A8478"); P.r(2, 6, 4, 1, "#8A8478"); P.p(5, 1, "#E8503F"); });
     ["ginger", "grey", "calico", "black"].forEach(function (k) { catSprites[k] = A.cat(k); });
     itemImg.ball = ballImg;
@@ -557,6 +558,7 @@
       a.cid = e.id || null; a.cast = e.cast.replace(/\+l$/, ""); a.name = e.name || NAMES[a.cast] || ""; a.face = e.face || null; a.homeDir = e.at[2];
       if (e.id) { a.kind = "story"; a.person = { id: e.id, name: a.name, face: e.face, say: e.say || [] }; } else { a.kind = "extra"; a.lines = e.say && e.say.length ? e.say : null; }
       if (e.at[3] === "sit") { a.sit = true; a.sortY = a.y + 1.3; }
+      if (e.at[3] === "kneel") { a.sit = true; a.prayPose = "jalsa"; } // on the carpet facing the qibla, seen from behind
       if (e.talk) a.talkAt = e.talk;
       if (e.queue) a.queue = true;
       if (e.work) a.work = 1;
@@ -1327,7 +1329,9 @@
   }
   function clampCam() {
     cam.x = viewW >= W ? (W - viewW) / 2 : clamp(cam.x, 0, W - viewW);
-    cam.y = viewH >= HG ? (HG - viewH) / 2 : clamp(cam.y, 0, HG - viewH);
+    // while someone talks the box covers the bottom of the screen, so the camera may go that far past the bottom edge
+    // (otherwise whoever stands near a room's front wall would be talking from under the box)
+    cam.y = viewH >= HG ? clamp(cam.y, (HG - viewH) / 2, (HG - viewH) / 2 + liftNow) : clamp(cam.y, 0, HG - viewH + liftNow);
   }
   function camTarget() {
     var lead = player.moving ? 10 : 0, lx = player.dir === 2 ? -lead : player.dir === 3 ? lead : 0, ly = player.dir === 1 ? -lead : player.dir === 0 ? lead : 0;
@@ -1492,6 +1496,46 @@
     img(sp, p.x, top);
     if (p.sign) text(p.sign.t, p.x + p.sign.dx, p.y + p.sign.dy, p.sign.h, p.sign.fg || "#FFE7A0");
     if (p.k === "kiosk" && lightsOn > 0.3) { ctx.globalAlpha = 0.5 * lightsOn; rect(p.x + 17, top + 13, 4, 1, "#FFFFFF"); ctx.globalAlpha = 1; }
+    if (p.k === "tvCab") drawTv(p.x + 3, top + 2);
+  }
+  // what's on TV (24 x 13): a cooking show in the afternoon, the mosque before maghrib and the adhan at sunset,
+  // the Ramadan series at night, cutting between its shots
+  function drawTv(x, y) {
+    var t = T, i;
+    if (time === "asr") {
+      rect(x, y, 24, 13, "#8ED0C4"); for (i = 0; i < 24; i += 4) rect(x + i, y, 1, 9, "#7ABCB0"); rect(x, y + 9, 24, 4, "#E8E2D6"); rect(x, y + 9, 24, 1, "#C8C0B4");
+      rect(x + 5, y + 1, 4, 2, "#FFFFFF"); rect(x + 5, y + 3, 4, 3, "#D9A27A"); rect(x + 6, y + 4, 1, 1, "#3A2E3A"); rect(x + 8, y + 4, 1, 1, "#3A2E3A"); rect(x + 4, y + 6, 6, 3, "#FFFFFF"); // the chef
+      var stir = Math.round(Math.sin(t * 5)); rect(x + 10 + stir, y + 5, 1, 4, "#8A5A3A");
+      rect(x + 11, y + 7, 7, 3, "#5A5A66"); rect(x + 11, y + 7, 7, 1, "#E89A3A"); // the pot
+      for (i = 0; i < 3; i++) { var sy = (t * 4 + i * 3) % 6; rect(x + 12 + i * 2, y + 6 - Math.round(sy), 1, 1, "rgba(255,255,255," + (0.8 - sy / 8).toFixed(2) + ")"); }
+      rect(x + 1, y + 1, 2, 2, "#E8503F");
+    } else if (time === "pre" || time === "maghrib") {
+      rect(x, y, 24, 4, "#4A3A6A"); rect(x, y + 4, 24, 3, "#C8606A"); rect(x, y + 7, 24, 3, "#F2A060"); rect(x, y + 10, 24, 3, "#2A1E30");
+      rect(x + 7, y + 5, 10, 5, "#2A1E30"); rect(x + 9, y + 3, 6, 3, "#2A1E30"); rect(x + 11, y + 2, 2, 1, "#2A1E30"); rect(x + 19, y + 1, 2, 9, "#2A1E30"); rect(x + 18, y + 3, 4, 1, "#2A1E30"); // dome and minaret
+      rect(x + 3, y + 1, 1, 1, "#FFF0C0"); rect(x + 2, y + 2, 1, 1, "#FFF0C0");
+      if (time === "maghrib" || ((t * 1.2) | 0) % 2) { rect(x + 10, y + 7, 1, 1, "#FFD25A"); rect(x + 13, y + 7, 1, 1, "#FFD25A"); rect(x + 19, y + 4, 2, 1, "#7AF0A0"); }
+    } else {
+      var shot = ((t / 3.4) | 0) % 4, talk = ((t * 6) | 0) % 2;
+      if (shot === 0) { // two of them in a living room, arguing kindly
+        rect(x, y, 24, 13, "#C8906A"); rect(x + 9, y + 2, 6, 5, "#2A3A6A"); rect(x + 10, y + 3, 1, 1, "#FFE7A0"); rect(x, y + 10, 24, 3, "#7A4A3A");
+        rect(x + 3, y + 3, 3, 3, "#D9A27A"); rect(x + 3, y + 3, 3, 1, "#2A1E26"); rect(x + 2, y + 6, 5, 6, "#3A5A8A"); if (talk) rect(x + 4, y + 5, 1, 1, "#7A3A3A");
+        rect(x + 17, y + 3, 3, 3, "#D9A27A"); rect(x + 16, y + 2, 5, 2, "#B5473B"); rect(x + 16, y + 3, 1, 3, "#B5473B"); rect(x + 16, y + 6, 5, 6, "#B5473B"); if (!talk) rect(x + 18, y + 5, 1, 1, "#7A3A3A");
+      } else if (shot === 1) { // close on her face
+        rect(x, y, 24, 13, "#5A4A6A"); rect(x + 7, y + 1, 10, 12, "#B5473B"); rect(x + 9, y + 3, 6, 8, "#D9A27A");
+        var bl = ((t * 2) | 0) % 5 === 0; rect(x + 10, y + 6, 1, bl ? 1 : 1, bl ? "#B8846A" : "#2A1E26"); rect(x + 13, y + 6, 1, 1, bl ? "#B8846A" : "#2A1E26");
+        if (((t * 1.5) | 0) % 3 === 1) rect(x + 10, y + 7, 1, 2, "#9AD0F0"); // a tear
+        rect(x + 11, y + 9, 2, 1, "#8A4A4A");
+      } else if (shot === 2) { // the hara at night, lanterns swinging
+        rect(x, y, 24, 13, "#1E2448"); rect(x, y + 9, 24, 4, "#4A3A4A"); rect(x, y + 3, 5, 7, "#8A6A5A"); rect(x + 19, y + 2, 5, 8, "#7A5A6A");
+        for (i = 0; i < 4; i++) rect(x + 6 + i * 4, y + 3 + Math.round(Math.sin(t * 2 + i)), 2, 2, ["#FFD25A", "#E8503F", "#4CBF73", "#4F97E8"][i]);
+        rect(x + 20, y + 4, 1, 1, "#FFE7A0"); rect(x + 2, y + 5, 1, 1, "#FFE7A0");
+      } else { // close on the old man
+        rect(x, y, 24, 13, "#6A5A4A"); rect(x + 8, y + 2, 8, 9, "#C89070"); rect(x + 8, y + 1, 8, 2, "#E8E2D6");
+        rect(x + 10, y + 5, 1, 1, "#2A1E26"); rect(x + 13, y + 5, 1, 1, "#2A1E26"); rect(x + 9, y + 7, 6, 1, "#E8E2D6"); if (talk) rect(x + 11, y + 8, 2, 1, "#7A3A3A");
+        rect(x + 7, y + 11, 10, 2, "#3A3550");
+      }
+    }
+    ctx.globalAlpha = 0.18; rect(x, y, 24, 1, "#FFFFFF"); rect(x, y + 2 + (((t * 20) | 0) % 11), 24, 1, "#FFFFFF"); ctx.globalAlpha = 1; // glass and a scan line
   }
   function drawSigns(b) {
     if (!fontsReady || !b.out.signs.length) return;
@@ -1597,7 +1641,7 @@
     if (a.pray && a.prayLag == null) a.prayLag = a.pray === "imam" ? 0 : a === player ? 0.35 : 0.15 + Math.random() * 0.45;
     var sp = a.sp, f, pp = a.prayPose || (a.pray ? prayPoseAt(pray.t - (a.prayLag || 0)) : null);
     if (pp) f = prayFrames(sp)[pp] || sp.f[1][0];
-    else if (a.sit) f = sp.sit[a.dir === 1 ? 0 : a.dir];
+    else if (a.sit) f = sp.sit[a.dir];
     else if (a.kick > 0) f = sp.f[a.dir][1];
     else if (a.moving) f = sp.f[a.dir][a.frame];
     else if (a.blink < 0 && a.dir !== 1) f = sp.blink[a.dir];

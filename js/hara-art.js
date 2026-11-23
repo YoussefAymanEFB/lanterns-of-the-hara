@@ -131,7 +131,9 @@
     blink[3] = flip(blink[2]); blink[1] = f[1][0];
     sit[0] = outline(drawPerson(o, 0, 0, true, false, {}));
     sit[2] = outline(drawPerson(o, 2, 0, true, false, {}));
-    sit[3] = flip(sit[2]); sit[1] = f[1][0];
+    sit[3] = flip(sit[2]);
+    // seen from behind, sitting on a sofa or a chair facing away: the back, three pixels lower (the seat hides the legs)
+    sit[1] = (function () { var c = cv(22, 32), g = c.getContext("2d"); g.drawImage(f[1][0], 0, 0, 22, 28, 0, 3, 22, 28); return c; })();
     return { f: f, blink: blink, sit: sit, w: 22, h: 32, ax: 11, ay: 30, lan: lan, kid: !!o.kid, spec: o };
   }
 

@@ -23,7 +23,8 @@
     w5: { skin: SK.mid, head: { kind: "hijab", c: "#E0A040" }, top: { kind: "robe", c: "#6A4A8A" } },
     w6: { skin: SK.fair, head: { kind: "hijab", c: "#4FA0B0" }, top: { kind: "robe", c: "#B5473B" } },
     k5: { kid: true, skin: SK.tan, hair: { style: "short", c: "#2B1F26" }, top: { kind: "tee", c: "#F2C14A" }, legs: "#3A3A48", shoes: "#F2F0EA" },
-    k6: { kid: true, skin: SK.deep, head: { kind: "hijab", c: "#F2F0EA" }, top: { kind: "dress", c: "#E8503F" }, shoes: "#F2C14A" }
+    k6: { kid: true, skin: SK.deep, head: { kind: "hijab", c: "#F2F0EA" }, top: { kind: "dress", c: "#E8503F" }, shoes: "#F2C14A" },
+    zaki: { build: "thin", skin: SK.tan, hair: { style: "grey", c: "#9A948E" }, head: { kind: "taqiyah", c: "#F4F1E8" }, top: { kind: "robe", c: "#5E7A9A" }, apron: "#F1EDE4", mus: "#D8D2C8", shoes: "#4A3328" }
   };
   Object.keys(MORE).forEach(function (k) { if (!WD.CAST[k]) WD.CAST[k] = MORE[k]; });
 
@@ -147,6 +148,54 @@
       P.r(0, 6, 4, 16, WOOD[2]); P.r(0, 6, 4, 1, WOOD[1]); P.r(w - 4, 6, 4, 16, WOOD[2]); P.r(w - 4, 6, 4, 1, WOOD[1]);
       P.r(1, 22, 2, 3, WOOD[3]); P.r(w - 3, 22, 2, 3, WOOD[3]);
     }, [0, 21, w, 5, 0.28]);
+  };
+  // the kanaba seen from behind, facing the TV: a carved wooden frame, the cushioned back, a crochet doily on top.
+  // Whoever sits on it shows their head and shoulders over the back.
+  PR.sofaBack = function (o) {
+    var w = o.w || 46;
+    return sprite(w, 20, function (P) {
+      P.r(0, 7, 5, 10, WOOD[2]); P.r(0, 7, 5, 1, WOOD[1]); P.r(w - 5, 7, 5, 10, WOOD[2]); P.r(w - 5, 7, 5, 1, WOOD[1]); // the arms
+      P.r(1, 8, 3, 1, "#8A3A3A"); P.r(w - 4, 8, 3, 1, "#8A3A3A");
+      P.r(4, 3, w - 8, 13, WOOD[2]); P.r(4, 3, w - 8, 1, WOOD[1]); P.r((w >> 1) - 6, 1, 12, 2, WOOD[2]); P.r((w >> 1) - 5, 1, 10, 1, WOOD[1]); // the frame and its crest
+      P.r(6, 5, w - 12, 9, "#9A4040"); P.r(6, 5, w - 12, 1, "#B85A50");
+      for (var x = 10; x < w - 8; x += 7) { P.p(x, 8, "#7A2E30"); P.p(x + 3, 11, "#7A2E30"); }
+      P.r(w - 9, 5, 3, 9, "#7A3434"); // the shade on the right
+      P.r((w >> 1) - 5, 3, 10, 3, "#F4EFE4"); for (var d = (w >> 1) - 5; d < (w >> 1) + 5; d += 2) P.p(d, 6, "#F4EFE4"); // the doily
+      P.r(2, 15, w - 4, 3, WOOD[3]); P.r(2, 15, w - 4, 1, WOOD[2]);
+      P.r(3, 18, 2, 2, WOOD[3]); P.r(w - 5, 18, 2, 2, WOOD[3]);
+    }, [0, 17, w, 4, 0.28]);
+  };
+  // النيش: the glass cabinet with the good plates nobody eats from, a lace runner and the Ramadan lantern on top
+  PR.niche = function () {
+    return sprite(40, 52, function (P) {
+      P.r(30, 0, 1, 2, BRASS[2]); P.r(28, 2, 5, 1, BRASS[1]); P.r(28, 3, 5, 5, "#FFD25A"); P.r(29, 4, 1, 3, "#FFF0B0"); P.r(28, 8, 5, 1, BRASS[1]); // the fanous
+      P.r(1, 9, 38, 41, WOOD[2]); P.r(0, 9, 40, 2, WOOD[1]); P.r(14, 7, 12, 2, WOOD[2]); P.r(15, 7, 10, 1, WOOD[1]);
+      P.r(6, 8, 18, 2, "#F4EFE4"); for (var l = 6; l < 24; l += 2) P.p(l, 10, "#F4EFE4"); // the lace runner
+      [4, 21].forEach(function (gx) {
+        P.r(gx, 12, 15, 21, "#A8C8D0"); P.r(gx, 22, 15, 1, WOOD[1]);
+        for (var i = 0; i < 2; i++) { var px = gx + 1 + i * 7; P.el(px, 14, 6, 7, "#F4EFE4"); P.el(px + 1, 15, 4, 5, "#4F97C8"); P.el(px + 2, 16, 2, 3, "#F4EFE4"); P.p(px + 2, 17, "#C8443A"); }
+        for (var j = 0; j < 3; j++) { var cx = gx + 1 + j * 5; P.r(cx, 27, 4, 4, "#F4EFE4"); P.r(cx, 27, 4, 1, "#E8C060"); P.p(cx + 4, 28, "#F4EFE4"); P.r(cx - 1, 31, 6, 1, "#E8E2D6"); }
+        P.p(gx + 2, 13, "#E8F4F8"); P.p(gx + 3, 14, "#E8F4F8"); P.p(gx + 11, 24, "#E8F4F8"); P.p(gx + 12, 25, "#E8F4F8"); // the glass shines
+        P.r(gx, 35, 15, 12, WOOD[0]); P.r(gx + 2, 37, 11, 8, WOOD[1]); P.r(gx + 3, 38, 9, 6, WOOD[0]);
+      });
+      P.p(18, 28, BRASS[1]); P.p(21, 28, BRASS[1]); P.p(18, 41, BRASS[1]); P.p(21, 41, BRASS[1]);
+      P.r(1, 33, 38, 1, WOOD[3]); P.r(1, 47, 38, 1, WOOD[3]);
+      P.r(2, 50, 3, 2, WOOD[3]); P.r(35, 50, 3, 2, WOOD[3]);
+    }, [0, 48, 40, 4, 0.28]);
+  };
+  // صاج الكنافة: the big round griddle where kunafa is poured in circles every Ramadan, a tray of finished strands beside it
+  PR.kunafaGriddle = function () {
+    return sprite(46, 24, function (P) {
+      var R = rng(31);
+      P.r(4, 12, 26, 9, "#8E3E2E"); for (var y = 13; y < 20; y += 3) for (var x = 5 + (y % 2 ? 2 : 0); x < 28; x += 5) P.r(x, y, 4, 2, "#B5583E"); // the brick stove
+      P.r(13, 17, 8, 4, "#2A1414"); P.r(14, 18, 6, 2, "#E8503F"); P.p(16, 18, "#FFD060");
+      P.el(1, 4, 32, 11, "#4A4448"); P.el(2, 4, 30, 9, "#8A8E94"); P.el(4, 5, 26, 7, "#A8ACB2"); // the griddle
+      for (var r = 0; r < 3; r++) P.el(9 + r * 2, 6 + r, 16 - r * 4, 5 - r * 2 > 1 ? 5 - r * 2 : 1, r % 2 ? "#F6D890" : "#E8C070"); // poured rings
+      P.p(17, 8, "#A8ACB2");
+      P.r(31, 10, 14, 3, "#D8D2C8"); P.r(31, 10, 14, 1, "#F4EFE4"); P.r(32, 13, 2, 8, WOOD[2]); P.r(42, 13, 2, 8, WOOD[2]); // the side table
+      P.el(32, 5, 12, 6, "#E8B860"); P.dots(33, 5, 10, 5, ["#F6D890", "#C8903A"], 16, R); // a heap of kunafa
+      P.r(36, 2, 4, 3, "#E8DCC0"); P.r(36, 2, 4, 1, "#F6EEDA"); // a paper cone
+    }, [0, 20, 46, 4, 0.28]);
   };
   PR.tabliya = function (o) { // the low round table where iftar happens; o.set 0 bare, 1 half laid, 2 iftar
     var set = o.set || 0;
@@ -397,8 +446,9 @@
         { k: "stove", x: 8, y: 94, block: [20, 6], steam: [11, -26] },
         { k: "sinkUnit", x: 32, y: 92, block: [26, 6] },
         { k: "fridge", x: 60, y: 94, block: [16, 6] },
-        { k: "sofa", o: { w: 52 }, x: 80, y: 86, block: [52, 8], seat: "sofa" },
-        { k: "tvCab", x: 152, y: 96, block: [28, 6], id: "tv" },
+        { k: "niche", x: 86, y: 96, block: [40, 6] },
+        { k: "tvCab", x: 150, y: 96, block: [28, 6], id: "tv" },
+        { k: "sofaBack", o: { w: 46 }, x: 134, y: 146, block: [46, 6] }, // facing the TV: mama's seat for the series
         { k: "tabliya", o: { set: 0 }, x: 79, y: 146, block: [28, 6], id: "tabliya", setBy: { pre: 1, maghrib: 2, night: 1 } },
         { k: "cushion", o: { c: "#2F5FB0" }, x: 62, y: 144, noblock: true },
         { k: "cushion", o: { c: "#1F7A54" }, x: 112, y: 144, noblock: true },
@@ -412,22 +462,17 @@
           R.rect(113, 23, 1, 1, "#3A2E3A");
           for (var i = 1; i < 5; i++) R.rect(113 + Math.round(Math.cos(a1) * i * 0.7), 23 + Math.round(Math.sin(a1) * i * 0.7), 1, 1, "#3A2E3A");
           for (var j = 1; j < 6; j++) R.rect(113 + Math.round(Math.cos(a2) * j * 0.85), 23 + Math.round(Math.sin(a2) * j * 0.85), 1, 1, "#C8443A");
-          var k = R.st.basket || 0;
+          var k = R.st.basket || 0, rp = R.st.rope || 0;
+          if (rp > 0 && !(k > 0)) { // just the rope and its hook, come down for the basket you're carrying
+            var sw2 = Math.round(Math.sin(t * 1.8) * 1.5 * Math.min(1, rp)), ry = 12 + Math.round(18 * Math.min(1, rp));
+            for (var y2 = 12; y2 < ry; y2++) R.rect(44 + Math.round(sw2 * (y2 - 12) / 18), y2, 1, 1, "#F4ECE0");
+            R.rect(43 + sw2, ry, 3, 1, "#8A8478"); R.rect(45 + sw2, ry - 2, 1, 2, "#8A8478");
+          }
           if (k > 0) {
             var sw = Math.round(Math.sin(t * 1.8) * 1.5 * Math.min(1, k)), by = 12 + Math.round(16 * Math.min(1, k));
             for (var y = 12; y < by; y++) R.rect(44 + Math.round(sw * (y - 12) / 16), y, 1, 1, "#F4ECE0");
             R.rect(40 + sw, by, 9, 6, "#B98A55"); R.rect(40 + sw, by, 9, 1, "#D9AA70"); R.rect(41 + sw, by + 3, 7, 1, "#8A6238"); R.rect(43 + sw, by - 1, 3, 1, "#F4EFE4");
           }
-        } },
-        { layer: "wall", draw: function (R) { // TV picture: the Quran channel in the afternoon, the series at night
-          var x = 155, y = 78, cyc = ((R.T * 0.4) | 0) % 4;
-          if (R.time === "night" || R.time === "maghrib") {
-            var cols = ["#3A5A8A", "#8A5A6A", "#5A8A6A", "#C89A5A"];
-            R.rect(x, y, 24, 13, cols[cyc]); R.rect(x + 4 + cyc * 3, y + 5, 4, 8, "#2A1E26"); R.rect(x + 14, y + 4, 4, 9, "#4A3240"); R.rect(x, y + 11, 24, 2, "#1E1A22");
-          } else {
-            R.rect(x, y, 24, 13, "#1E4A3A"); R.rect(x + 3, y + 3, 18, 6, "#2E6A4E"); R.rect(x + 5, y + 5, 14, 1, "#E8C86A"); R.rect(x + 7, y + 7, 10, 1, "#E8C86A");
-          }
-          R.alpha(0.25); R.rect(x, y, 24, 1, "#FFFFFF"); R.alpha(1);
         } }
       ],
       over: function (R) { // the ceiling lamp on its cord
@@ -438,7 +483,7 @@
       lights: [
         { x: 96, y: 60, r: 120, c: [255, 214, 150], when: "on", g: 0.5 },
         { x: 18, y: 70, r: 26, c: [255, 150, 80], when: "always", g: 0.4, fl: 1 },
-        { x: 166, y: 84, r: 44, c: [140, 180, 255], when: "on", g: 0.45, fl: 2 }
+        { x: 165, y: 76, r: 46, c: [140, 180, 255], when: "on", g: 0.5, fl: 2 }
       ],
       wins: [{ x: 32, y: 12, w: 24, h: 22 }],
       exits: [exitAt(W, HG, "home"), { r: [134, 64, 18, 10], to: "roof" }],
@@ -448,7 +493,7 @@
         if (time === "asr") mama.at = [19, 102, 1];
         else if (time === "pre") mama.at = [96, 136, 0];
         else if (time === "maghrib") mama.at = [66, 150, 3, "sit"];
-        else mama.at = [100, 82, 0, "sit"];
+        else { mama.at = [151, 137, 1, "sit"]; mama.talk = [126, 134]; } // on the kanaba, watching the series
         mama.say = [
           { when: "asr", t: "«الشوربة على النار. {روح|روحي} هات العيش بقى!»" },
           { when: "pre", t: "«{افرش|افرشي} معايا السفرة… لا استنى، العيش الأول!»" },
@@ -494,7 +539,8 @@
         { k: "sacks", x: 8, y: 118, block: [16, 6] },
         { k: "sacks", x: 12, y: 128, block: [16, 6] },
         { k: "breadRack", x: 152, y: 160, block: [24, 6] },
-        { k: "breadCage", o: { n: 2 }, x: 150, y: 132, block: [18, 6] }
+        { k: "breadCage", o: { n: 2 }, x: 150, y: 132, block: [18, 6] },
+        { k: "kunafaGriddle", x: 10, y: 176, block: [46, 6], steam: [17, -16], look: "kunafa" } // only in Ramadan: Zaki pours kunafa by the door
       ],
       fixtures: [
         { layer: "wall", draw: function (R) { // the board: one paper for every bread someone paid for
@@ -521,6 +567,12 @@
           var k = (Math.sin(R.T * 1.4) + 1) / 2, ex = 134 + Math.round(k * 8), ey = 56;
           for (var i = 0; i <= 24; i++) R.rect(Math.round(156 + (ex - 156) * i / 24), Math.round(80 + (ey - 80) * i / 24), 1, 1, WOOD[2]);
           R.rect(ex - 4, ey - 1, 8, 2, WOOD[1]);
+        } },
+        { layer: "sort", y: 177, draw: function (R) { // Zaki's pouring cup going round and round, a thin stream of batter under it
+          if (R.time === "maghrib") return;
+          var a = R.T * 2.2, cx = Math.round(27 + Math.cos(a) * 8), cy = Math.round(163 + Math.sin(a) * 2);
+          R.rect(cx - 2, cy - 9, 5, 4, BRASS[1]); R.rect(cx - 2, cy - 9, 5, 1, BRASS[0]); R.rect(cx + 3, cy - 8, 2, 1, BRASS[2]);
+          for (var s = cy - 5; s < cy; s++) R.rect(cx, s, 1, 1, "#F6E8C0");
         } }
       ],
       over: function (R) { for (var y = 0; y < 50; y++) R.rect(66, y, 1, 1, "#3A2E36"); R.rect(64, 50, 5, 4, "#FFF2C0"); R.rect(63, 49, 7, 1, "#5A4A4A"); },
@@ -542,6 +594,7 @@
             { t: "«واحد واحد يا جماعة! العيش مش هيطير!»" }] }
         ];
         if (time !== "maghrib") out.push({ cast: "sobhy", name: "صبحي", at: [158, 96, 1], say: ["«سخن سخن! {حاسب|حاسبي} الفرن نار!»", "«عم حسن بيقول العجينة زي البني آدم، محتاجة صبر.»"] });
+        if (time !== "maghrib") out.push({ cast: "zaki", name: "عم زكي", at: [27, 156, 0], talk: [62, 166], say: ["«الكنافة البلدي مش بتتعمل غير في رمضان. باقي السنة بستناه.»", "«لفّة… ولفّة… ولفّة. أربعين سنة بلفّ الكوز ده.»", "«الكنافة عايزة صاج سخن وإيد صبورة.»"] });
         if (time === "asr" || time === "pre") {
           out.push({ id: "omyoussef", cast: "omyoussef", name: "أم يوسف", face: "omyoussef", at: [70, 118, 1], say: [{ if: "at_bakery", t: "«ربنا يجبر بخاطرك يا {ابني|بنتي}.»" }, { t: "«الطابور طويل النهارده…»" }] });
           out.push({ cast: "w2", name: "أم كريم", at: [76, 134, 1], queue: true, say: ["«خمسة أرغفة بس يا عم حسن الله يخليك.»"] });
@@ -680,6 +733,7 @@
           [124, 148, 172].forEach(function (y, row) {
             [38, 60, 82, 104, 128, 150, 172, 194].forEach(function (x) {
               if (row === 2 && (x === 38 || x === 194)) return;
+              if (row === 1 && x === 104) return; // a place left for you in the second row
               var c = men[n++ % men.length];
               out.push({ cast: c, name: "", at: [x, y, 1], pray: "row", slot: row + "," + x });
             });
@@ -693,14 +747,14 @@
           return out;
         }
         if (time === "maghrib") return [
-          { cast: "m2", name: "عم فتحي", at: [70, 140, 1, "sit"], say: ["«فطرنا على تمرة ونزلنا نصلي. الأكل مش هيطير.»"] },
-          { cast: "m7", name: "الحاج سليمان", at: [150, 132, 1, "sit"], say: ["«تقبّل الله.»"] },
-          { cast: "w3", name: "الحاجة فاطمة", at: [140, 232, 1, "sit"], say: ["«تقبّل الله يا {حبيبي|حبيبتي}.»"] }];
+          { cast: "m2", name: "عم فتحي", at: [70, 140, 1, "kneel"], say: ["«فطرنا على تمرة ونزلنا نصلي. الأكل مش هيطير.»"] },
+          { cast: "m7", name: "الحاج سليمان", at: [150, 132, 1, "kneel"], say: ["«تقبّل الله.»"] },
+          { cast: "w3", name: "الحاجة فاطمة", at: [140, 232, 1, "kneel"], say: ["«تقبّل الله يا {حبيبي|حبيبتي}.»"] }];
         return [
           { id: "sheikh", cast: "sheikh", name: "الشيخ عبد الله", at: [100, 118, 0, "sit"], say: [{ t: "«أهلًا يا {ابني|بنتي}. الجامع بيتك.»" }, { t: "«التراويح بعد العشا، {متتأخرش|متتأخريش}.»" }] },
-          { cast: "m7", name: "الحاج سليمان", at: [178, 192, 1, "sit"], say: ["«أنا بقرأ جزء كل يوم. الختمة يوم ٢٩ إن شاء الله.»"] },
+          { cast: "m7", name: "الحاج سليمان", at: [178, 192, 1, "kneel"], say: ["«أنا بقرأ جزء كل يوم. الختمة يوم ٢٩ إن شاء الله.»"] },
           { cast: "m2", name: "عم فتحي", at: [24, 162, 0, "sit"], sleep: true, say: ["«…زززز… رمضان كريم… زززز»"] },
-          { cast: "w3", name: "الحاجة فاطمة", at: [60, 234, 1, "sit"], say: ["«بقرأ جزء عمّ للمرة الألف. كل مرة بلاقي فيه حاجة جديدة.»", "«الجامع ده اتجوزت فيه، وجوّزت فيه ولادي.»"] },
+          { cast: "w3", name: "الحاجة فاطمة", at: [60, 234, 1, "kneel"], say: ["«بقرأ جزء عمّ للمرة الألف. كل مرة بلاقي فيه حاجة جديدة.»", "«الجامع ده اتجوزت فيه، وجوّزت فيه ولادي.»"] },
           { cast: "w1", name: "أم سعاد", at: [150, 230, 0, "sit"], say: ["«بنيجي من بدري عشان نلحق مكان في التراويح.»"] }];
       },
       women: { y: 202 }

@@ -1,11 +1,15 @@
 /*
   Day 1 · عم صابر · played in the world (walk.html, js/world.js)
   ------------------------------------------------------------
-  The same story as episodes/ep01.js, staged as scenes in the hara: every path has 7 choices,
-  two of them donation moments (give).
+  The story of episodes/ep01.js, staged as scenes in the hara: every path has 7 choices,
+  two of them donation moments (give). Every errand someone gives you gets done on screen:
+  mama's bread reaches the iftar table, Nemat gets her kunafa and Saber his two loaves.
+  A running joke: Nemat keeps saying "don't tell your mom", and mama is always right there.
     1. home        mama's kitchen, Nemat's basket at the window            (choice)
     2. alley       the kids' lot, the football flying at your face         (choice)
     3. bakery      inside Hassan's bakery, the empty board                 (GIVE 1)
+                   then Nemat's kunafa from Zaki's griddle, and home with the bread (home_back):
+                   the kunafa goes up in her basket, and mama sends you to Saber
     4. steps       the mosque steps, Rizq buying Saber's tools             (choice)
     5. saber_talk  sitting with Saber                                      (choice)
     6. adhan       a minute before maghrib: where Saber breaks his fast    (GIVE 2)
@@ -27,8 +31,10 @@ HARA.worldEpisodes[1] = {
 
   quests: [
     { from: "mama", t: "هات ٢٠ رغيف من فرن عم حسن", done: "at_bakery" },
+    { from: "nemat", if: "nemat", t: "هات كيلو كنافة من عند عم زكي في الفرن", done: "at_bakery" },
+    { from: "mama", if: "at_bakery", t: "{رجّع|رجّعي} العيش البيت قبل المغرب", done: "at_homeback" },
     { from: "nemat", if: "nemat", t: "ودّي رغيفين لعم صابر", done: "at_steps" },
-    { from: "hassan", if: "at_bakery", t: "{دوّر|دوّري} على عم صابر", done: "at_steps" }
+    { from: "mama", if: "mamaBread", t: "ودّي العيش لعم صابر على سلم الجامع", done: "at_steps" }
   ],
 
   nodes: {
@@ -53,7 +59,12 @@ HARA.worldEpisodes[1] = {
         ["cam", [44, 44], 2.2, 1100],
         "تك تك تك على الشباك. سَبَت مربوط بحبل، نازل من البلكونة اللي فوق.",
         { who: "nemat", t: "«يا {name}! يا {حبيبي|حبيبتي}! {خد|خدي} السبت ده {معاك|معاكي}، فيه فلوس وورقة. وما {تقولش|تقوليش} لأمك إني بستغلك!»" },
-        ["cam", "me+mama", 1.6, 700], ["emote", "mama", "…", 400]
+        ["face", "mama", 1], ["emote", "mama", "!"], ["jump", "mama", 200],
+        { who: "mama", t: "«شايفاكي يا نعمات!»" },
+        ["tween", "basket", 1, 0.7, 200], ["tween", "basket", 0.7, 1, 260],
+        { who: "nemat", t: "«…رمضان كريم يا ست الكل! ريحة الشوربة واصلة لحد عندي!»" },
+        ["cam", "me+mama", 1.6, 700], ["face", "mama", "me"], ["emote", "mama", "…", 400],
+        { who: "mama", t: "«براحتك. بس لو العيش اتأخر، {هتفطر|هتفطري} على الشوربة لوحدها.»" }
       ],
       choice: { prompt: "السبت بيتمرجح قدام الشباك…", options: [
         { t: "{تاخد|تاخدي} السبت", set: { nemat: true }, log: "{شلت|شلتي} سبت الحاجة نعمات", next: "basket_yes" },
@@ -70,8 +81,9 @@ HARA.worldEpisodes[1] = {
         ["prop", "basket", 0], ["item", "me", "basket", 700],
         ["item", "me", "note"],
         "{فتحت|فتحتي} الورقة. خط مهزوز، ومكتوب بالقلم الرصاص:",
-        "«٢ كيلو كنافة… ورغيفين لعم صابر.»",
-        { who: "nemat", t: "«عم صابر بقاله كام يوم ما بيردش على الباب. إديله العيش وقوله نعمات بتسلّم عليك.»" },
+        "«كيلو كنافة بلدي من عند عم زكي اللي في الفرن… ورغيفين لعم صابر.»",
+        { who: "nemat", t: "«عم صابر بقاله كام يوم ما بيردش على الباب. إديله العيش {وقوله|وقوليله} نعمات بتسلّم عليك.»" },
+        { who: "nemat", t: "«والكنافة {هاتها|هاتيها} على هنا، وأنا أنزّلك الحبل.»" },
         ["item", "me", null], ["face", "me", 0], ["emote", "me", "…"],
         "عم صابر؟ النجار؟ ده اللي عامل نص أبواب الحارة… وباب بيتكم كمان."
       ],
@@ -291,7 +303,7 @@ HARA.worldEpisodes[1] = {
     },
 
     bakery_saber: {
-      loc: "bakery", place: "bakery", time: "pre", clock: "فاضل خمسة وأربعين دقيقة",
+      loc: "bakery", place: "bakery", time: "pre", clock: "فاضل خمسة وأربعين دقيقة على المغرب",
       lines: [
         ["cam", "hassan+me", 1.6, 700], ["face", "hassan", 0],
         { who: "hassan", t: "«{عارف|عارفة} مين كان أول واحد يعلّق على اللوحة دي؟ عم صابر. كل يوم، عشرين سنة.»" },
@@ -301,19 +313,63 @@ HARA.worldEpisodes[1] = {
         { if: "sign", t: "{وافتكرت|وافتكرتي} الورقة اللي على باب ورشته: «للبيع»." },
         { if: "gossip", t: "{وافتكرت|وافتكرتي} كلام ملك: قاعد على سلم الجامع من الضهر." },
         ["item", "me", "bread", 500], ["sfx", "rustle"],
-        "{خدت|خدتي} العيش. الشمس برا بدأت تحمر.",
-        ["item", "me", null]
+        { who: "hassan", t: "«عشرين رغيف، سخنين. {وسلّم|وسلّمي} لي على أمك.»" },
+        ["item", "me", null],
+        { if: "nemat", do: [["walk", "me", 66, 166, 2], ["cam", "zaki+me", 1.9, 800], ["face", "zaki", "me"]] },
+        { if: "nemat", who: "zaki", t: "«كنافة الحاجة نعمات؟ دي زبونتي من أربعين سنة! كيلو بالتمام، لسه نازل من على الصاج.»" },
+        { if: "nemat", do: [["sfx", "rustle"], ["item", "me", "kunafa", 700], ["item", "me", null]] },
+        "{طلعت|طلعتي} من الفرن. الشمس بدأت تحمر… والعيش لازم يوصل البيت قبل المغرب."
+      ],
+      next: "home_back"
+    },
+
+    /* ---------- HOME AGAIN: the bread on the table, the kunafa up to Nemat, and mama sends you to Saber ---------- */
+    home_back: {
+      loc: "home", place: "homeback", time: "pre", clock: "فاضل نص ساعة على المغرب",
+      walk: { task: "{رجّع|رجّعي} العيش البيت. ماما مستنية", to: { enter: "home" } },
+      walkFrom: "bakery", at: [108, 146, 1],
+      lines: [
+        ["walk", "me", 96, 158, 1],
+        ["cam", "me+mama", 1.7, 800],
+        ["face", "mama", 0], ["emote", "mama", "!"], ["jump", "mama"],
+        { who: "mama", t: "«أخيرًا! {إنت رحت تجيب|إنتي رحتي تجيبي} العيش من أسوان؟!»" },
+        { if: "goal", who: "me", t: "«كان فيه ماتش… وجبت جون!»" },
+        { if: "gossip", who: "me", t: "«كنت بجمع أخبار الحارة… مهمة رسمية.»" },
+        ["emote", "mama", "…", 300],
+        ["item", "me", "bread", 400], ["item", "me", null], ["item", "mama", "bread", 600], ["item", "mama", null],
+        "عشرين رغيف سخنين نزلوا على الطبلية. البيت كله بقى ريحته رمضان.",
+        // Nemat's rope comes down for her kunafa
+        { if: "nemat", do: [["sfx", "basket"], ["tween&", "rope", 0, 1, 1400], ["face", "me", 1], ["cam", [44, 60], 2, 1000]] },
+        { if: "nemat", who: "nemat", t: "«{name}! الكنافة وصلت؟ {اربط|اربطي} السبت في الحبل يا {حبيبي|حبيبتي}… وما {تقولش|تقوليش} لأمك إنك اتأخرت عشاني!»" },
+        { if: "nemat", do: [["cam", "me+mama", 1.6, 600], ["face", "mama", 1], ["jump", "mama"], ["emote", "mama", "!"]] },
+        { if: "nemat", who: "mama", t: "«أنا سامعاكي يا نعمات!»" },
+        { if: "nemat", who: "nemat", t: "«…كل سنة وانتي طيبة يا ست الكل!»" },
+        { if: "nemat", do: [["walk", "me", 46, 99, 1], ["item", "me", "basket", 500], ["item", "me", null], ["prop", "rope", 0], ["prop", "basket", 1], ["sfx", "basket"], ["tween", "basket", 1, 0, 1500]] },
+        { if: "nemat", who: "nemat", t: "«الله! ريحة الكنافة البلدي! تسلم {إيدك|إيدك}… والرغيفين بتوع صابر؟»" },
+        { if: "nemat", who: "me", t: "«معايا. {رايح|رايحة} له دلوقتي.»" },
+        // mama hears about Saber
+        ["face", "me", 0], ["face", "mama", "me"], ["cam", "me+mama", 1.7, 700],
+        { if: "nemat", who: "mama", t: "«صابر؟ صابر النجار؟»" },
+        { if: "!nemat", who: "me", t: "«ماما… عم حسن بيقول إن عم صابر النجار بطّل ييجي الفرن من شهرين.»" },
+        ["emote", "mama", "…", 500],
+        { who: "mama", t: "«ده اللي عامل باب بيتنا ده بإيده. الباب اللي {بتقفله|بتقفليه} في وشي كل ما أقولك ذاكر.»" },
+        ["emote", "me", "sweat", 400],
+        { if: "!nemat", do: [["item", "mama", "bread", 400], ["item", "mama", null], ["item", "me", "bread", 500], ["item", "me", null], ["flag", "mamaBread"]] },
+        { if: "!nemat", who: "mama", t: "«{خد|خدي} الرغيفين دول له.»" },
+        { who: "mama", t: "«هتلاقيه على سلم الجامع، بقاله أيام بيقعد هناك. {روح اطمن|روحي اطمني} عليه… ولو ما رضيش ييجي يفطر معانا، {خليك|خليكي} معاه. محدش يفطر لوحده أول يوم رمضان.»" },
+        ["emote", "me", "♥", 400],
+        "{بصيت|بصيتي} من الشباك. السما بقت برتقالي."
       ],
       next: "steps"
     },
 
     /* ---------- 4 · THE MOSQUE STEPS ---------- */
     steps: {
-      loc: "hara", place: "steps", time: "pre", clock: "فاضل نص ساعة على المغرب",
-      walk: { task: "{دوّر|دوّري} على عم صابر قبل المغرب. الناس بتقول إنه عند الجامع",
+      loc: "hara", place: "steps", time: "pre", clock: "فاضل عشرين دقيقة على المغرب",
+      walk: { task: "{ودّي|ودّي} العيش لعم صابر على سلم الجامع، قبل المغرب",
         to: { loc: "hara", spot: "steps", zone: [196, 244, 150, 26] },
         murmur: [{ who: "rizq", t: "«ميتين جنيه يا حاج…»" }, { who: "saber", t: "«…»" }, { who: "rizq", t: "«ده كرم مني عشان رمضان!»" }] },
-      walkFrom: "bakery", at: [108, 146, 1],
+      walkFrom: "home", at: [96, 158, 1],
       cast: { saber: ["saber", 290, 247, 0, "sit"], rizq: ["rizq", 302, 263, 1] },
       lines: [
         ["walk", "me", 252, 262, 3],
@@ -338,7 +394,7 @@ HARA.worldEpisodes[1] = {
     },
 
     st_stand: {
-      loc: "hara", place: "steps", time: "pre", clock: "فاضل نص ساعة على المغرب",
+      loc: "hara", place: "steps", time: "pre", clock: "فاضل عشرين دقيقة على المغرب",
       at: [252, 262, 3], cast: { saber: ["saber", 290, 247, 0, "sit"], rizq: ["rizq", 302, 263, 1] },
       lines: [
         ["cam", "saber+rizq", 1.8, 500],
@@ -362,7 +418,7 @@ HARA.worldEpisodes[1] = {
     },
 
     st_wait: {
-      loc: "hara", place: "steps", time: "pre", clock: "فاضل نص ساعة على المغرب",
+      loc: "hara", place: "steps", time: "pre", clock: "فاضل عشرين دقيقة على المغرب",
       at: [252, 262, 3], cast: { saber: ["saber", 290, 247, 0, "sit"], rizq: ["rizq", 302, 263, 1] },
       lines: [
         ["emote", "me", "…", 500],
@@ -380,7 +436,7 @@ HARA.worldEpisodes[1] = {
     },
 
     st_expose: {
-      loc: "hara", place: "steps", time: "pre", clock: "فاضل نص ساعة على المغرب",
+      loc: "hara", place: "steps", time: "pre", clock: "فاضل عشرين دقيقة على المغرب",
       at: [252, 262, 3], cast: { saber: ["saber", 290, 247, 0, "sit"], rizq: ["rizq", 302, 263, 1] },
       lines: [
         ["walk", "me", 284, 262, 3],
@@ -408,12 +464,15 @@ HARA.worldEpisodes[1] = {
         ["gone", "rizq"],
         ["walk", "me", 276, 256, 3],
         ["cam", "saber+me", 2, 900], ["face", "saber", "me"],
-        { who: "saber", t: "«متشكر يا {ابني|بنتي}. بس ما كانش لازم.»" },
-        { if: "nemat", do: [["item", "me", "bread", 600]] },
-        { if: "nemat", who: "me", t: "«الحاجة نعمات بتسلّم عليك.»" },
-        { if: "nemat", do: [["item", "me", null], ["item", "saber", "bread", 500], ["emote", "saber", "♥", 400]] },
+        { if: "!waited", who: "saber", t: "«متشكر يا {ابني|بنتي}. بس ما كانش لازم.»" },
+        { if: "waited", who: "saber", t: "«{شفت|شفتي}؟ لسه فيّا حيل أقول لأ.» قالها وهو بيحاول يبتسم." },
+        ["item", "me", "bread", 600],
+        { if: "nemat", who: "me", t: "«الحاجة نعمات بعتالك العيش ده… وبتسلّم عليك.»" },
+        { if: "!nemat", who: "me", t: "«ماما بعتالك العيش ده… وبتقولك باب بيتنا لسه زي الفل.»" },
+        ["item", "me", null], ["item", "saber", "bread", 500], ["emote", "saber", "♥", 400],
         { if: "nemat", who: "saber", face: "saber_smile", t: "«نعمات… لسه فاكرة.» ضحكة صغيرة. أول مرة النهارده." },
-        { if: "nemat", do: [["item", "saber", null]] },
+        { if: "!nemat", who: "saber", face: "saber_smile", t: "«الباب ده عملته وأمك لسه عروسة جديدة.» ضحكة صغيرة. أول مرة النهارده." },
+        ["item", "saber", null],
         ["cam", [60, 314], 1.5, 1400],
         "عينيه راحت للمائدة اللي بتتفرش قدامه. وبعدين رجعت للأرض.",
         ["cam", "saber+me", 2, 900], ["face", "saber", 0]
@@ -444,7 +503,8 @@ HARA.worldEpisodes[1] = {
       at: [276, 256, 3], cast: { saber: ["saber", 290, 247, 0, "sit"] },
       lines: [
         ["item", "saber", "plane", 500],
-        { who: "saber", t: "«الفارة دي بتاعة أبويا. عملت بيها نص أبواب الحارة. باب بيتكم كمان.»" },
+        { if: "nemat", who: "saber", t: "«الفارة دي بتاعة أبويا. عملت بيها نص أبواب الحارة. باب بيتكم كمان.»" },
+        { if: "!nemat", who: "saber", t: "«الفارة دي بتاعة أبويا. عملت بيها نص أبواب الحارة.»" },
         ["item", "saber", null], ["face", "saber", 0],
         { who: "saber", t: "«عينيا تعبت، والشغل قل، والإيجار زاد. والورشة… هتتباع.»" },
         ["emote", "saber", "sad", 400],
@@ -617,16 +677,36 @@ HARA.worldEpisodes[1] = {
         ["go", "hara", [262, 300, 0], true],
         ["time", "night", true], ["repop"],
         ["spawn", "saber", "saber", 278, 298, 2],
+        ["spawn", "mama", "mama", 178, 352, 3], ["spawn", "nemat", "nemat", 166, 344, 3],
         ["cam", [288, 190], 1.05, 0],
         ["fade", 0, 1200],
         { fx: "chime", t: "بعد الفطار، الحارة بتصحى من تاني. الفوانيس كلها نوّرت." },
         ["cam", "saber+me", 1.8, 1600],
-        { if: "nemat", do: [["spawn", "nemat", "nemat", 226, 340, 1], ["walk", "nemat", 248, 312, 3], ["item", "nemat", "plate", 300]] },
-        { if: "nemat", who: "nemat", t: "«{name}! جبتلك طبق قطايف! {ما تقولش|ما تقوليش} لأمك!»" },
+        ["walk&", "mama", 238, 312, 3], ["walk", "nemat", 248, 322, 3],
+        ["face", "me", 2], ["cam", "me+nemat", 1.7, 700],
+        { if: "nemat", do: [["item", "nemat", "plate", 400]] },
+        { if: "nemat", who: "nemat", t: "«{name}! الكنافة اتعملت، وده أول طبق طلع من الصينية… {ليك|ليكي}. {ما تقولش|ما تقوليش} لأمك!»" },
+        { if: "nemat", do: [["face", "mama", "nemat"], ["jump", "mama"], ["emote", "mama", "!"]] },
+        { if: "nemat", who: "mama", t: "«يا نعمات أنا واقفة جنبك!!»" },
+        { if: "nemat", do: [["emote", "nemat", "sweat", 300], ["emote", "saber", "♪", 300]] },
+        { if: "nemat", t: "الحاجة نعمات حطت إيدها على بُقها. وعم صابر ضحك لحد ما دمعت عينه." },
         { if: "nemat", do: [["item", "nemat", null], ["item", "me", "plate", 500], ["item", "me", null]] },
-        { if: "dodged", do: [["spawn", "nemat", "nemat", 226, 340, 1], ["walk", "nemat", 248, 312, 3], ["emote", "nemat", "♪", 300]] },
         { if: "dodged", who: "nemat", t: "«{name}! أنا {مسامحاك|مسامحاكي} على حكاية السبت. بس عشان رمضان.»" },
-        ["face", "saber", "me"],
+        { if: "dodged", do: [["face", "mama", "me"], ["emote", "mama", "…", 300]] },
+        { if: "dodged", who: "mama", t: "«الست نزلت السلالم على رجليها عشان كيلو كنافة يا {name}.»" },
+        { if: "dodged", do: [["emote", "me", "sweat", 300], ["emote", "nemat", "♪", 300]] },
+        { if: "dodged", who: "nemat", t: "«ولا يهمك يا ست الكل. الحركة بركة… والكنافة طلعت تحفة!»" },
+        ["face", "mama", "me"], ["cam", "me+mama", 1.8, 700],
+        { who: "mama", t: "«{فطرت|فطرتي} برا أول يوم رمضان…»" },
+        ["emote", "me", "sweat", 400],
+        { who: "mama", t: "«…بس عم صابر ما فطرش لوحده. أنا مبسوطة منك يا {name}.»" },
+        ["emote", "mama", "♥", 400],
+        { who: "nemat", t: "«يلا يا ست الكل، التراويح هتفوتنا!»" },
+        ["cam", [244, 270], 1.5, 900],
+        ["walk&", "mama", 238, 246, 1], ["walk", "nemat", 250, 248, 1],
+        ["gone", "mama"], ["gone", "nemat"],
+        "ودخلوا الجامع من باب الستات، دراع في دراع.",
+        ["cam", "saber+me", 1.8, 900], ["face", "me", 3], ["face", "saber", "me"],
         { who: "saber", face: "saber_smile", t: "«الليلة لسه طويلة يا {ابني|بنتي}.»" }
       ],
       choice: { prompt: "{هتروح|هتروحي} فين؟ {امشي|امشي} للمكان اللي {تختاره|تختاريه}", walk: true, follow: "saber", options: [
@@ -638,9 +718,9 @@ HARA.worldEpisodes[1] = {
 
     n_mosque: {
       loc: "mosque", place: "mosque", time: "night", clock: "التراويح",
-      cast: { saber: ["saber", 104, 124, 1] }, // already in his row when you come in
+      cast: { saber: ["saber", 104, 124, 1], mama: ["mama", 88, 214, 1], nemat: ["nemat", 124, 214, 1] }, // already in their rows when you come in
       lines: [
-        ["pose", "saber", "pray"],
+        ["pose", "saber", "pray"], ["pose", "mama", "pray"], ["pose", "nemat", "pray"],
         { if: "!fem", do: [["clearAt", [104, 148]], ["walk", "me", 104, 148, 1]] },
         { if: "fem", do: [["clearAt", [106, 214]], ["walk", "me", 106, 214, 1]] },
         ["pose", "me", "pray"],
@@ -648,7 +728,7 @@ HARA.worldEpisodes[1] = {
         "الجامع مليان لآخره. أول تراويح في رمضان دايمًا ليها طعم.",
         ["cam", "saber", 2, 1300],
         { if: "!fem", t: "في الصف اللي قدامك… عم صابر. ضهره مفرود النهارده." },
-        { if: "fem", t: "من ورا المشربية، شايفة عم صابر في الصف الأول. ضهره مفرود النهارده." },
+        { if: "fem", t: "ماما على شمالك، والحاجة نعمات على يمينك. ومن ورا المشربية، عم صابر في الصف الأول. ضهره مفرود النهارده." },
         ["cam", [116, 150], 1.3, 1200], ["wait", 4200],
         ["fade", 1, 600], ["pray", "end"], ["cam", "sheikh", 1.8, 0], ["fade", 0, 700],
         "بعد الصلاة، الشيخ عبد الله مسك المايك:",

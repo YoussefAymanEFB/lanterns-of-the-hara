@@ -139,7 +139,7 @@ if (!files.length) { console.log("No episode files found in episodes/"); failed 
 const ROOMS = ["home", "bakery", "mosque", "koshari", "kebab", "workshop", "roof"];
 const LOCS = ["hara"].concat(ROOMS);
 const CMDS = ["cam", "track", "free", "walk", "step", "face", "emote", "jump", "pose", "item", "shiver", "wait", "sfx", "fx", "music", "bed", "hush", "time",
-  "repop", "fade", "flash", "shake", "burst", "spawn", "gone", "place", "clearAt", "follow", "prop", "tween", "count", "go", "says", "ball", "card", "crowd", "pray", "cannon", "fn"];
+  "repop", "fade", "flash", "shake", "burst", "spawn", "gone", "place", "clearAt", "follow", "prop", "tween", "count", "go", "says", "ball", "card", "crowd", "pray", "cannon", "flag", "fn"];
 sandbox.HARA.worldEpisodes = {};
 const wfiles = fs.readdirSync(dir).filter((f) => /^w\d+\.js$/.test(f)).sort();
 for (const f of wfiles) vm.runInContext(fs.readFileSync(path.join(dir, f), "utf8"), sandbox, { filename: f });
