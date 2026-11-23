@@ -151,6 +151,7 @@
     if (d === 2) bodySide(P, o, L); else bodyFront(P, o, L);
     head(P, o, L);
     if (o.lantern && !sitting) heldLantern(P, o, L);
+    if (o.drum && !sitting) heldDrum(P, o, L);
     out.lan = L.lan || null;
     return c;
   }
@@ -549,6 +550,21 @@
     L.lan = [x + 1.5 - 11, y + 3 - 30];
   }
 
+  // the musaharati's drum (بازة) on a strap across the chest, and the leather beater in the other hand
+  function heldDrum(P, o, L) {
+    var cx = L.cx, bt = L.bt, d = L.d, rim = "#8A5A2A", skin = "#F2E2BE";
+    if (d === 1) { P.line(cx - 3, bt + 1, cx + 2, bt + 6, "#6A3E22"); return; } // from behind: just the strap
+    P.line(cx - 3, bt, cx + 2, bt + 5, "#6A3E22");
+    if (d === 0) {
+      P.el(cx - 4, bt + 5, 8, 5, rim); P.el(cx - 3, bt + 5, 6, 3, skin); P.p(cx - 2, bt + 5, "#FFF8E4");
+      P.r(cx + 4, bt + 1, 1, 6, "#4A2E1E"); // the beater
+    } else {
+      var hx = L.hand[0];
+      P.r(hx - 2, bt + 4, 3, 6, rim); P.r(hx + 1, bt + 4, 1, 6, skin); P.p(hx + 1, bt + 4, "#FFF8E4");
+      P.r(hx + 2, bt + 2, 1, 4, "#4A2E1E");
+    }
+  }
+
   /* ================= animals ================= */
   var CATS = {
     ginger: { b: "#E8964A", d: "#C46E33", l: "#F7DDBB" },
@@ -630,27 +646,56 @@
   // round flatbread (عيش بلدي)
   function loaf(P, x, y, R) { P.el(x, y, 6, 3, "#D9A25E"); P.p(x + 1, y, "#EFC88A"); P.p(x + 2, y, "#EFC88A"); P.p(x + 3 + ((R() * 2) | 0), y + 1, "#B57A3E"); }
 
+  // عربية عم سيد: the copper pot on the left, his plates and bread in the middle where he stands,
+  // his son's ta'meya pan on the right, a gas cylinder underneath, a bulb and a little fanoos on the pole.
+  // The front panel is left plain cream for the painted name (drawn as a sign in js/hara-world.js).
   PROPS.fulCart = function () {
-    return sprite(44, 40, function (P) {
-      var R = rng(11);
-      // wheels behind
-      P.el(3, 28, 9, 9, "#4A3328"); P.el(5, 30, 5, 5, "#7A5A44"); P.el(32, 28, 9, 9, "#4A3328"); P.el(34, 30, 5, 5, "#7A5A44");
-      // cart box: painted green with a yellow band and red diamonds
-      P.r(2, 22, 40, 10, "#2F8A5A"); P.r(2, 22, 40, 2, "#4FAE78"); P.r(2, 30, 40, 2, "#22683F");
-      P.r(2, 25, 40, 3, "#F2C14A"); for (var i = 4; i < 40; i += 5) { P.p(i, 26, "#D2413A"); P.p(i + 1, 25, "#D2413A"); P.p(i + 1, 27, "#D2413A"); P.p(i + 2, 26, "#D2413A"); }
-      P.r(1, 20, 42, 2, "#C9C2B6"); P.r(1, 20, 42, 1, "#EDE8DE"); // steel top
-      // the big pot (قدرة الفول)
-      P.el(15, 7, 14, 14, "#C98A3A"); P.el(16, 8, 8, 8, "#E2A95A"); P.p(18, 9, "#FFE1A0"); P.p(19, 9, "#FFE1A0"); P.el(22, 12, 6, 8, "#A86C2C");
-      P.r(18, 4, 8, 4, "#B97B33"); P.r(19, 3, 6, 1, "#D9A050"); P.r(20, 2, 4, 1, "#8A5A24");
-      P.r(14, 18, 16, 2, "#8A5A24");
-      // tins of oil, cumin, lemon
-      P.r(5, 14, 4, 6, "#E7E2D6"); P.r(5, 14, 4, 1, "#C9302C"); P.r(10, 15, 3, 5, "#F2D06A"); P.r(10, 15, 3, 1, "#7A5A30");
-      P.r(32, 13, 7, 7, "#BFE0E8"); P.r(32, 13, 7, 1, "#E8F6FA"); P.r(33, 16, 5, 3, "#E9C46A"); P.p(34, 15, "#FFFFFF"); // glass box with pickles
-      P.r(36, 19, 6, 1, "#9A938A");
-      // a bulb on a stick
-      P.r(40, 2, 1, 18, "#5A4030"); P.r(37, 2, 4, 1, "#5A4030"); P.r(37, 3, 1, 2, "#5A4030"); P.p(37, 5, "#FFF1B8");
-      P.dots(2, 22, 40, 10, ["#2A7A50", "#38966A"], 18, R);
-    }, [1, 34, 42, 6]);
+    return sprite(50, 44, function (P) {
+      var R = rng(11), i;
+      // wheels, and the butane cylinder between them
+      P.el(4, 33, 10, 10, "#4A3328"); P.el(6, 35, 6, 6, "#7A5A44"); P.p(8, 37, "#4A3328");
+      P.el(36, 33, 10, 10, "#4A3328"); P.el(38, 35, 6, 6, "#7A5A44"); P.p(40, 37, "#4A3328");
+      P.r(21, 32, 8, 10, "#4F7FA6"); P.r(22, 33, 1, 8, "#7FA8C8"); P.r(21, 41, 8, 1, "#3A5F80"); P.r(24, 31, 2, 1, "#C9C2B6");
+      // the box: green, a yellow band with red diamonds, a cream panel for the name
+      P.r(2, 24, 46, 10, "#2F8A5A"); P.r(2, 24, 46, 1, "#4FAE78"); P.r(2, 32, 46, 2, "#22683F");
+      P.dots(2, 25, 46, 7, ["#2A7A50", "#38966A"], 20, R);
+      P.r(2, 26, 46, 1, "#F2C14A"); P.r(2, 31, 46, 1, "#F2C14A");
+      for (i = 4; i < 14; i += 4) { P.p(i, 28, "#D2413A"); P.p(i + 1, 27, "#D2413A"); P.p(i + 1, 29, "#D2413A"); P.p(i + 2, 28, "#D2413A"); P.p(i + 1, 28, "#F2C14A"); }
+      for (i = 37; i < 47; i += 4) { P.p(i, 28, "#D2413A"); P.p(i + 1, 27, "#D2413A"); P.p(i + 1, 29, "#D2413A"); P.p(i + 2, 28, "#D2413A"); P.p(i + 1, 28, "#F2C14A"); }
+      P.r(15, 26, 20, 6, "#F4E6C4"); P.r(15, 26, 20, 1, "#C8443A"); P.r(15, 31, 20, 1, "#C8443A");
+      P.r(1, 22, 48, 2, "#C9C2B6"); P.r(1, 22, 48, 1, "#EDE8DE"); // steel top
+      // the copper pot (قدرة الفول), sunk into the cart, a ladle resting in it
+      P.el(4, 8, 16, 15, "#C98A3A"); P.el(5, 9, 9, 8, "#E2A95A"); P.p(7, 10, "#FFE1A0"); P.p(8, 10, "#FFE1A0"); P.el(13, 13, 6, 8, "#A86C2C");
+      P.r(7, 5, 10, 4, "#B97B33"); P.r(8, 4, 8, 1, "#D9A050"); P.r(10, 3, 4, 1, "#8A5A24");
+      P.r(3, 20, 18, 2, "#8A5A24");
+      P.p(16, 4, "#9AA0A8"); P.p(17, 3, "#9AA0A8"); P.p(18, 2, "#9AA0A8"); P.p(19, 1, "#B8C0C8");
+      // the middle: a stack of enamel plates, a basket of bread, a lemon
+      for (i = 0; i < 3; i++) { P.r(22, 17 + i * 2, 7, 1, "#F4EFE6"); P.r(22, 18 + i * 2, 7, 1, "#3E78C2"); }
+      P.el(29, 16, 7, 6, "#B98A55"); P.r(30, 16, 5, 1, "#D9AA70"); P.el(30, 14, 4, 3, "#E0AE6A"); P.p(31, 14, "#F0C888");
+      P.el(32, 20, 3, 2, "#F2D06A");
+      // the ta'meya pan on its burner: black rim, golden oil, discs frying
+      P.r(38, 21, 8, 1, "#5A5560");
+      P.el(35, 15, 13, 7, "#2A2428"); P.el(36, 16, 11, 4, "#C99A3A"); P.r(38, 16, 6, 1, "#E8C060");
+      P.el(37, 17, 3, 2, "#7A4A22"); P.el(41, 16, 3, 2, "#8A5A28"); P.el(43, 18, 3, 2, "#6A3E1E");
+      // the pole: a bulb and a small fanoos hang from it
+      P.r(48, 1, 1, 21, "#5A4030"); P.r(40, 1, 9, 1, "#5A4030");
+      P.p(41, 2, "#5A4030"); P.r(40, 3, 3, 2, "#FFF1B8"); P.p(41, 5, "#FFE08A");
+      P.p(45, 2, "#5A4030"); P.r(44, 3, 3, 1, "#C8963E"); P.r(44, 4, 3, 3, "#E8503F"); P.p(45, 5, "#FFD25A"); P.p(45, 7, "#C8963E");
+    }, [1, 38, 48, 6]);
+  };
+
+  // a round tin table by the ful cart; o.set: plates of ful, bread, ta'meya and pickles (after maghrib)
+  PROPS.fulTable = function (o) {
+    return sprite(14, 12, function (P) {
+      P.r(6, 6, 2, 5, "#7A7680"); P.r(3, 10, 8, 1, "#7A7680");
+      P.el(0, 2, 14, 6, "#2F8A7A"); P.el(1, 2, 12, 4, "#4FAE9C"); P.r(3, 7, 8, 1, "#22685C");
+      if (o.set) {
+        P.el(1, 2, 6, 3, "#F4EFE6"); P.el(2, 2, 4, 2, "#9A5A2E"); P.p(3, 2, "#E8B040");
+        P.el(8, 1, 5, 3, "#D9A25E"); P.p(10, 1, "#EFC88A");
+        P.p(5, 5, "#F08A2A"); P.p(6, 5, "#6EBE58"); P.p(9, 5, "#7A4A22"); P.p(10, 4, "#7A4A22");
+        P.r(12, 3, 1, 2, "#BFE0E8");
+      }
+    }, [1, 9, 12, 3, 0.22]);
   };
 
   PROPS.breadRack = function (o) {

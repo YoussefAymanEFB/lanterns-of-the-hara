@@ -21,12 +21,12 @@
     mama: { name: "ماما", color: "#F7C59F", face: "mama" },
     omyoussef: { name: "أم يوسف", color: "#B9C8FF", face: "omyoussef" },
     youssef: { name: "يوسف", color: "#FF9F8A", face: "youssef" },
-    malak: { name: "ملك", color: "#FFB36B", face: "malak" },
+    nourah: { name: "نورة", color: "#FFB36B", face: "nourah" },
     rizq: { name: "المعلم رزق", color: "#D9C38A", face: "rizq" },
     sheikh: { name: "الشيخ عبد الله", color: "#CFE3FF" },
     abuyasser: { name: "أبو ياسر", color: "#A9E4EA" }
   };
-  var FACES = ["saber", "saber_smile", "nemat", "hassan", "mama", "omyoussef", "youssef", "malak", "rizq"];
+  var FACES = ["saber", "saber_smile", "nemat", "hassan", "mama", "omyoussef", "youssef", "nourah", "rizq"];
   var TOTAL = 30;
   var STORE_KEY = MAP ? "hara.walk.v1" : "hara.v2"; // the walking prototype keeps its own progress
   var SAMPLE_COUNTER = 12430;

@@ -240,6 +240,30 @@
       var t = now() + 0.02;
       [0, 0.07, 0.15, 0.2].forEach(function (d, i) { thump({ t: t + d, from: rnd(1300, 1700), to: 900, gain: 0.04 * (v || 1) / (i + 1), decay: 0.03, wave: "triangle", dest: dest }); });
     },
+    // the musaharati's little drum (the baza), beaten with a leather strap: dum, dum, dum-dum
+    baza: function (dest, v) {
+      var t = now() + 0.02, g = v == null ? 1 : v;
+      [[0, 1], [0.34, 0.8], [0.58, 0.9], [0.7, 0.75]].forEach(function (h) {
+        thump({ t: t + h[0], from: 250, to: 150, gain: 0.2 * g * h[1], decay: 0.2, dest: dest });
+        burst({ t: t + h[0], freq: 1300, q: 1.4, gain: 0.05 * g * h[1], decay: 0.05, dest: dest });
+      });
+    },
+    // the aragoz's voice, squeaked through the reed in the puppeteer's mouth
+    squeak: function (dest, v) {
+      var t = now() + 0.02, g = v == null ? 1 : v;
+      [0, 0.1, 0.2, 0.32].forEach(function (d, i) {
+        var o = ctx.createOscillator(), f = ctx.createBiquadFilter(), gg = ctx.createGain();
+        o.type = "sawtooth"; o.frequency.setValueAtTime(1050 + i * 70, t + d); o.frequency.exponentialRampToValueAtTime(1450 + i * 90, t + d + 0.07);
+        f.type = "bandpass"; f.frequency.value = 1700; f.Q.value = 2.2;
+        env(gg, t + d, 0.035 * g, 0.01, 0.08);
+        o.connect(f); f.connect(gg); gg.connect(dest || sfxBus); o.start(t + d); o.stop(t + d + 0.13);
+      });
+    },
+    // a table of people clapping along on the beat
+    clap: function (dest, v) {
+      var t = now() + 0.02, g = v == null ? 1 : v, beat = 0.555;
+      for (var b = 0; b < 4; b++) for (var p = 0; p < 5; p++) burst({ t: t + b * beat + rnd(0, 0.03), freq: rnd(1400, 2600), q: 1.1, gain: 0.03 * g, decay: 0.05, dest: dest });
+    },
     hush: function () { A.hush(); },
     cannon: function () { A.cannon(); }
   };
@@ -254,7 +278,7 @@
     steps: { air: [620, 0.06], murmur: 0.1, ev: [["clink", 5, 10, 0.4], ["bounce", 12, 22, 0.4]] },
     table: { air: [600, 0.04], murmur: 0.3, ev: [["clink", 1.2, 3.5, 0.6], ["glass", 4, 9, 0.6]] },
     steps_iftar: { air: [480, 0.035], ev: [["clink", 7, 14, 0.25], ["glass", 12, 20, 0.2]] },
-    fulcart: { air: [600, 0.05], murmur: 0.22, simmer: 0.035, ev: [["ladle", 3.5, 8, 0.7], ["clink", 3, 7, 0.4]] },
+    fulcart: { air: [600, 0.05], murmur: 0.22, simmer: 0.035, sizzle: 0.018, ev: [["ladle", 3.5, 8, 0.7], ["clink", 3, 7, 0.4]] },
     koshari: { air: [320, 0.04], murmur: 0.3, sizzle: 0.025, ev: [["bowl", 1, 3, 0.7]] },
     kebab: { air: [520, 0.04], murmur: 0.22, sizzle: 0.05, kids: [11, 20, 0.22], ev: [["clink", 3, 7, 0.4]] },
     mosque: { air: [170, 0.05], room: true, ev: [["rustle", 5, 11, 0.6]] },
@@ -273,7 +297,10 @@
     bakeryIn: { air: [280, 0.05], roar: 0.08, murmur: 0.24, byTime: { asr: 0.7, pre: 1, maghrib: 0.1, night: 0.35 }, ev: [["coins", 5, 10, 0.6], ["rustle", 4, 8, 0.8]] },
     mosqueIn: { air: [160, 0.035], room: true, murmur: 0.05, byTime: { asr: 0.2, pre: 0.2, maghrib: 0.6, night: 1 }, ev: [["rustle", 6, 12, 0.5]] },
     koshariIn: { air: [320, 0.04], murmur: 0.34, sizzle: 0.025, byTime: { asr: 0.08, pre: 0.45, maghrib: 1, night: 1 }, ev: [["bowl", 1.2, 3.2, 0.7], ["clink", 2, 5, 0.4]] },
-    kebabIn: { air: [480, 0.04], murmur: 0.28, sizzle: 0.06, byTime: { asr: 0.1, pre: 0.4, maghrib: 1, night: 1 }, kids: [12, 22, 0.18], ev: [["clink", 2.5, 6, 0.45]] }
+    kebabIn: { air: [480, 0.04], murmur: 0.28, sizzle: 0.06, byTime: { asr: 0.1, pre: 0.4, maghrib: 1, night: 1 }, kids: [12, 22, 0.18], ev: [["clink", 2.5, 6, 0.45]] },
+    // the suhoor tent: the band (tabla, riq and a mizmar), the crowd clapping along; outside you hear it through the cloth
+    tentIn: { air: [420, 0.04], murmur: 0.34, simmer: 0.015, band: { gain: 1, lp: 3400 }, ev: [["clap", 7, 14, 0.8], ["clink", 2, 5, 0.45], ["glass", 4, 9, 0.4]], kids: [14, 26, 0.16] },
+    tentOut: { air: [600, 0.05], murmur: 0.24, band: { gain: 0.5, lp: 900 }, ev: [["clink", 4, 9, 0.3]], kids: [16, 28, 0.12] }
   };
 
   function loopNoise(kind, filterType, freq, level, dest) {
@@ -290,7 +317,8 @@
     b.out.gain.value = 0.0001;
     b.out.connect(ambBus);
     if (c.room) b.out.connect(reverb);
-    var nightDrop = time === "night" ? 0.7 : 1, crowd = c.byTime ? (c.byTime[time] == null ? 1 : c.byTime[time]) : 1;
+    var late = time === "night" || time === "suhoor", tk = c.byTime && c.byTime[time] == null && time === "suhoor" ? "night" : time;
+    var nightDrop = late ? 0.7 : 1, crowd = c.byTime ? (c.byTime[tk] == null ? 1 : c.byTime[tk]) : 1;
     b.sources.push(loopNoise("brown", "lowpass", c.air[0], c.air[1] * nightDrop, b.out));
     if (c.roar) {
       var r = loopNoise("brown", "lowpass", 160, c.roar, b.out);
@@ -322,13 +350,62 @@
       (function go() { b.timers.push(setTimeout(function () { if (!b.dead && !hushed) fn(); go(); }, rnd(min, max) * 1000)); })();
     }
     (c.ev || []).forEach(function (e) {
-      if (e[0] === "chirp" && time === "night") return; // the sparrows sleep
+      if (e[0] === "chirp" && late) return; // the sparrows sleep
       if (crowd < 0.15 && (e[0] === "bowl" || e[0] === "coins")) return; // nobody eating, nobody paying
       var slow = crowd < 0.5 ? 1.8 : 1;
       every(e[1] * slow, e[2] * slow, function () { FX[e[0]](b.out, e[3] * 1.8); });
     });
     if (c.kids) every(c.kids[0], c.kids[1], function () { playSample("kids", { gain: c.kids[2], lowpass: 3200, rate: rnd(0.94, 1.04), dest: b.out }); });
+    if (c.band) band(b, c.band);
     return b;
+  }
+  /* The tent's band: maqsum on the tabla (dum tak . tak dum . tak .), the riq's jingles on every eighth,
+     and a mizmar playing a short tune of our own in maqam hijaz, round and round. Scheduled a bar ahead. */
+  var HJ = { D4: 293.66, Eb4: 311.13, Fs4: 369.99, G4: 392, A4: 440, Bb4: 466.16, C5: 523.25, D5: 587.33 };
+  var TUNE = [
+    [["D5", 2], ["C5", 1], ["Bb4", 1], ["A4", 2], ["G4", 1], ["A4", 1]],
+    [["Bb4", 1], ["A4", 1], ["G4", 1], ["Fs4", 1], ["G4", 2], ["Eb4", 1], ["D4", 1]],
+    [["Fs4", 1], ["G4", 1], ["A4", 2], ["Bb4", 1], ["A4", 1], ["G4", 1], ["A4", 1]],
+    [["G4", 1], ["Fs4", 1], ["Eb4", 1], ["Fs4", 1], ["D4", 4]],
+    [["A4", 1], ["A4", 1], ["Bb4", 1], ["C5", 1], ["D5", 2], ["C5", 1], ["Bb4", 1]],
+    [["A4", 1], ["Bb4", 1], ["A4", 1], ["G4", 1], ["Fs4", 2], ["G4", 2]],
+    [["Eb4", 1], ["Fs4", 1], ["G4", 1], ["A4", 1], ["Bb4", 1], ["A4", 1], ["G4", 1], ["Fs4", 1]],
+    [["G4", 2], ["Fs4", 1], ["Eb4", 1], ["D4", 4]]
+  ];
+  function band(b, o) {
+    var out = ctx.createGain(), lp = ctx.createBiquadFilter();
+    lp.type = "lowpass"; lp.frequency.value = o.lp || 3000;
+    out.gain.value = o.gain || 1;
+    out.connect(lp); lp.connect(b.out);
+    var E = 0.278, bar = 0, next = now() + 0.3;
+    function mizmar(f, t, len, v) {
+      var os = ctx.createOscillator(), vib = ctx.createOscillator(), vg = ctx.createGain(), fl = ctx.createBiquadFilter(), g = ctx.createGain();
+      os.type = "sawtooth"; os.frequency.value = f;
+      vib.frequency.value = 5.5; vg.gain.value = f * 0.006; vib.connect(vg); vg.connect(os.frequency);
+      fl.type = "bandpass"; fl.frequency.value = 1500; fl.Q.value = 0.7;
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v, t + 0.03);
+      g.gain.setValueAtTime(v, t + len - 0.06); g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+      os.connect(fl); fl.connect(g); g.connect(out);
+      os.start(t); vib.start(t); os.stop(t + len + 0.05); vib.stop(t + len + 0.05);
+    }
+    function schedule() {
+      if (b.dead) return;
+      while (next < now() + 1.2) {
+        var t0 = next;
+        [[0, "D"], [1, "T"], [2, "k"], [3, "T"], [4, "D"], [5, "k"], [6, "T"], [7, "k"]].forEach(function (h) {
+          var t = t0 + h[0] * E;
+          if (h[1] === "D") thump({ t: t, from: 110, to: 58, gain: 0.26, decay: 0.32, dest: out });
+          else if (h[1] === "T") burst({ t: t, freq: 2400, q: 1.3, gain: 0.11, decay: 0.07, dest: out });
+          else burst({ t: t, freq: 3200, q: 1.5, gain: 0.035, decay: 0.04, dest: out });
+          metal({ t: t + 0.01, base: 5200, ratios: [1, 1.34, 1.83], gain: h[0] % 4 ? 0.012 : 0.022, decay: 0.12, dest: out }); // the riq
+        });
+        var line = TUNE[bar % TUNE.length], pos = 0;
+        if (bar % 16 >= 2) line.forEach(function (n) { mizmar(HJ[n[0]], t0 + pos * E, n[1] * E - 0.02, 0.035); pos += n[1]; });
+        next += 8 * E; bar++;
+      }
+      b.timers.push(setTimeout(schedule, 400));
+    }
+    schedule();
   }
   function dropBed(b, fade) {
     if (!b) return;
@@ -454,6 +531,10 @@
   A.fx = function (name) {
     if (!ctx || !FX[name]) return;
     try { FX[name](); } catch (e) {}
+  };
+  A.fxv = function (name, v) { // an effect at a volume, for sounds that come from somewhere on the map
+    if (!ctx || !FX[name] || muted) return;
+    try { FX[name](null, v); } catch (e) {}
   };
   A.chime = function () { A.fx("chime"); };
   A.drum = function () { A.fx("drum"); };

@@ -21,6 +21,8 @@ Most days run from the afternoon (asr) through iftar and taraweeh. Every week or
 
 Suhoor days: **2, 9, 16, 23, and 27** (Laylat al-Qadr, when the whole hara stays up until fajr).
 
+**On every suhoor night, Sayed's ful corner becomes a party: خيمة عم سيد** (built, `js/hara-sahra.js`). A big khayamiya tent with music and confetti coming out of the door, and inside a band, a tanoura dancer whose skirt lights up when the house lights go down, the aragoz puppet show, a drinks bar, and the whole hara on floor cushions eating ful. Each suhoor day's story can send you in there for a scene. Preview: `walk.html?day=2&time=suhoor`.
+
 ## Gatherings that make people care
 
 These are the days that build attachment between the player and the hara's people:
@@ -83,7 +85,7 @@ Every person you help returns later in a new role, so the month feels like one s
 
 ## What the engine needs for this (not built yet)
 
-- **Suhoor as a time of day**: lighting, the musaharati walking with his drum, people on rooftops, the imsak and fajr sounds.
+- **Suhoor as a time of day**: the lighting, the musaharati walking with his drum and calling names, and the tent are built. Still to do: people on the rooftops, the imsak and fajr sounds, and the sky turning grey-pink at the end of a suhoor scene.
 - **What you own**: a list saved with your progress (`S.owned`), and what you're wearing changing your sprite and what you carry.
 - **Coins**: earned from each good deed and saved with your progress, with a small counter on the errands card.
 - **A small shop card**: the same style as the giving card, but clearly paid in coins.

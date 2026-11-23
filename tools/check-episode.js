@@ -30,9 +30,10 @@ for (const f of files) vm.runInContext(fs.readFileSync(path.join(dir, f), "utf8"
 
 const PLACES = ["home", "alley", "bakery", "steps", "table", "steps_iftar", "fulcart", "koshari", "kebab", "mosque", "roof", "workshop"];
 const TIMES = ["asr", "pre", "maghrib", "night"];
+const WTIMES = TIMES.concat(["suhoor"]); // the world version also has suhoor (2–3 AM); the classic story screens don't
 // places on the walkable map (SPOTS in js/hara-world.js) and painted faces (assets/faces)
-const SPOTS = ["home", "roof", "kids", "bakery", "workshop", "fulcart", "koshari", "kebab", "square", "steps", "mosque", "cafe"];
-const FACES = ["saber", "saber_smile", "nemat", "hassan", "mama", "omyoussef", "youssef", "malak", "rizq"];
+const SPOTS = ["home", "roof", "kids", "bakery", "workshop", "fulcart", "koshari", "kebab", "square", "steps", "mosque", "cafe", "tent"];
+const FACES = ["saber", "saber_smile", "nemat", "hassan", "mama", "omyoussef", "youssef", "nourah", "rizq"];
 let failed = false;
 
 function texts(node) {
@@ -161,7 +162,7 @@ for (const ep of Object.values(sandbox.HARA.worldEpisodes)) {
         const c = String(l[0]).replace(/&$/, "");
         if (!CMDS.includes(c)) errors.push(`${id} line ${i + 1}: unknown stage direction "${l[0]}"`);
         if (c === "go" && !LOCS.includes(l[1])) errors.push(`${id} line ${i + 1}: can't go to "${l[1]}"`);
-        if (c === "time" && !TIMES.includes(l[1])) errors.push(`${id} line ${i + 1}: unknown time "${l[1]}"`);
+        if (c === "time" && !WTIMES.includes(l[1])) errors.push(`${id} line ${i + 1}: unknown time "${l[1]}"`);
         return;
       }
       if (l.do) return lines(id, l.do);
@@ -174,7 +175,7 @@ for (const ep of Object.values(sandbox.HARA.worldEpisodes)) {
     const exits = ["next", "choice", "give", "end"].filter((k) => n[k]);
     if (exits.length !== 1) errors.push(`${id}: needs exactly one of next/choice/give/end (has ${exits.join(", ") || "none"})`);
     if (!LOCS.includes(n.loc)) errors.push(`${id}: unknown place "${n.loc}"`);
-    if (!TIMES.includes(n.time)) errors.push(`${id}: unknown time "${n.time}"`);
+    if (!WTIMES.includes(n.time)) errors.push(`${id}: unknown time "${n.time}"`);
     if (!n.lines || !n.lines.length) errors.push(`${id}: has no lines`);
     lines(id, n.lines);
     if (n.next && !nodes[n.next]) errors.push(`${id}: next "${n.next}" does not exist`);

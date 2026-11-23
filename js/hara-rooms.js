@@ -959,7 +959,7 @@
       people: function (time) {
         if (!open) return [];
         var out = [{ id: "saber", cast: "saberWork", name: "عم صابر", face: "saber_smile", at: [62, 112, 1], work: true, say: [{ t: "«{شايف|شايفة} الفوانيس دي؟ كل واحد فيها فيه حتة من الحارة. {خد|خدي} واحد، ده عليا.»" }] }];
-        if (time !== "maghrib") out.push({ cast: "k1", name: "زياد", at: [92, 124, 2], say: ["«عم صابر هيعلّمني أعمل فانوس!»"] }, { cast: "malak", name: "ملك", face: "malak", at: [36, 126, 3], say: ["«أنا اللي بلوّن الإزاز! شوف الأحمر ده!»"] });
+        if (time !== "maghrib") out.push({ cast: "k1", name: "زياد", at: [92, 124, 2], say: ["«عم صابر هيعلّمني أعمل فانوس!»"] }, { cast: "nourah", name: "نورة", face: "nourah", at: [36, 126, 3], say: ["«أنا اللي بلوّن الإزاز! شوف الأحمر ده!»"] });
         return out;
       },
       state: { sign: open ? 0 : 1, lamp: open ? 1 : 0 }
@@ -1033,8 +1033,8 @@
       people: function (time) {
         if (time === "night") return [
           { id: "youssef", cast: "youssef+l", name: "يوسف", face: "youssef", at: [96, 140, 0], say: [{ t: "«السطوح فيه فوانيس كتير النهارده!»" }] },
-          { id: "malak", cast: "malak+l", name: "ملك", face: "malak", at: [120, 142, 2], say: [{ t: "«فانوسي خشب! عم صابر هو اللي عامله!»" }] },
-          { cast: "k2+l", name: "نور", at: [76, 156, 3], say: ["«وحوي يا وحوي، إيوحا!»"] },
+          { id: "nourah", cast: "nourah+l", name: "نورة", face: "nourah", at: [120, 142, 2], say: [{ t: "«فانوسي خشب مش بلاستيك! ده هيعيش لحد ما أكبر!»" }] },
+          { cast: "k2+l", name: "جنى", at: [76, 156, 3], say: ["«وحوي يا وحوي، إيوحا!»"] },
           { cast: "k3+l", name: "عمر", at: [140, 160, 2], say: ["«بص على الجامع من هنا! الفوانيس عاملة زي النجوم.»"] }];
         if (time === "asr" || time === "pre") return [{ cast: "k3", name: "عمر", at: [110, 130, 1], kite: true, say: ["«{شايف|شايفة} طيارتي؟ أعلى واحدة في الحارة!»"] }];
         return [];
@@ -1064,6 +1064,9 @@
       r.st = JSON.parse(r.st0);
       return r;
     },
-    has: function (id) { return !!ROOMS[id]; }
+    has: function (id) { return !!ROOMS[id]; },
+    // another file can add a room and the hara spot that opens it (js/hara-sahra.js: the suhoor tent)
+    add: function (id, make, spot, door) { ROOMS[id] = make; if (H.rooms.LIST.indexOf(id) < 0) H.rooms.LIST.push(id); if (spot) DOORS[spot] = door || { room: id, spot: spot }; },
+    kit: { shell: shell, exitAt: exitAt, plaster: plaster, khayamiya: khayamiya, frame: frame, grid: grid, checker: checker }
   };
 })();

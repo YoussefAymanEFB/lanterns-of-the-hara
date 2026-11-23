@@ -115,19 +115,23 @@
       onFlag: function (k) { if (S.run) { S.run.flags[k] = true; save(); } }
     }, o));
   }
+  // walk.html?day=2&time=suhoor opens on a suhoor night (a preview of the suhoor days, before their stories are written)
+  var URL_TIME = (function () { var m = /[?&]time=([a-z]+)/.exec(location.search); return m ? m[1] : ""; })();
   function showTitle() {
     mode("title");
     EP = EPS[1];
-    startMap({ title: true, time: "night", loc: "hara", at: [300, 330, 0] });
+    var sahra = URL_TIME === "suhoor";
+    startMap({ title: true, time: sahra ? "suhoor" : "night", loc: "hara", at: [300, 330, 0] });
     var done = !!S.done[1], inProg = S.run && S.run.ep === 1, lit = Object.keys(S.done).length;
-    var go = h("button", { type: "button", "class": "wl-btn big", text: inProg ? "كمّل الحكاية" : done ? "العب اليوم تاني" : "ابدأ" , onclick: function () { begin(); } });
+    var go = h("button", { type: "button", "class": "wl-btn" + (sahra ? "" : " big"), text: inProg ? "كمّل الحكاية" : done ? "العب اليوم تاني" : "ابدأ" , onclick: function () { begin(); } });
     var kids = [
       h("p", { "class": "wl-t-k", text: "حكاية كل يوم في رمضان" }),
       h("h1", { "class": "wl-t-logo", text: "فوانيس الحارة" }),
       h("p", { "class": "wl-t-sub", text: "كل يوم، حد في الحارة محتاجك. نوّرت " + ar(lit) + " من " + ar(TOTAL) + " فانوس." }),
       h("div", { "class": "wl-t-acts" }, [
+        sahra ? h("button", { type: "button", "class": "wl-btn big", text: "ليلة سحور في الحارة", onclick: function () { audioOn(); suhoorNight(); } }) : null,
         go,
-        done ? h("button", { type: "button", "class": "wl-btn", text: "امشي في الحارة بالليل", onclick: function () { audioOn(); freeRoam(true); } }) : null
+        done && !sahra ? h("button", { type: "button", "class": "wl-btn", text: "امشي في الحارة بالليل", onclick: function () { audioOn(); freeRoam(true); } }) : null
       ]),
       h("div", { "class": "wl-t-links" }, [
         h("button", { type: "button", "class": "wl-link", text: "اسمك وطريقة الكلام", onclick: function () { profile(showTitle); } }),
@@ -550,6 +554,18 @@
     };
     if (fromTitle) C.fade(1, 400).then(function () { go(); return C.fade(0, 700); });
     else go();
+  }
+
+  // a suhoor night: the hara awake at half past two, Sayed's tent lit up, the musaharati on his round
+  function suhoorNight() {
+    closeSheet(); mode("play");
+    EP = EPS[1];
+    C.fade(1, 400).then(function () {
+      startMap({ time: "suhoor", loc: "hara", at: [104, 540, 2], freeTask: "ليلة سحور! الحارة صاحية لحد الفجر. {اتمشى|اتمشي} {وادخل|وادخلي} الخيمة.", hint: true });
+      MAP.clock("السحور · ٢:٣٠");
+      MAP.objective({ task: T("خيمة عم سيد منوّرة! {ادخل|ادخلي} {واتفرج|واتفرجي} على التنورة"), goals: [{ enter: "tent", label: "خيمة عم سيد" }], onReach: function () { MAP.objective(null); } });
+      return C.fade(0, 700);
+    });
   }
 
   /* ---------------- outside COH: pretend payment and sharing ---------------- */

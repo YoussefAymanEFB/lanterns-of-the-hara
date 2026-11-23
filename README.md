@@ -21,7 +21,7 @@ node tools/serve.js
 
 **Scenes, the way Stardew Valley tells its stories.** When the story needs you, a scene starts where you are: black bars slide in, the camera moves in close, and the people act it out. They walk in, turn to each other, jump, shiver, sit, hold things up (a basket, two loaves, a date) and show little bubbles (!, ?, a heart, a sweat drop, anger). The words come in a dialogue box with the speaker's portrait in a wooden frame and their name under it: painted portraits for the main characters, pixel portraits for everyone else and for you. Questions are asked in the same box. Nobody pops into place: people who are already in view walk to their marks, the next scene's people wait at their places while you're still on your way (as you get close to the mosque steps you overhear Rizq haggling), and anyone who has to appear does it behind a fade or out of sight. A few choices are made by walking: after iftar you walk to the mosque, the roof or Saber's workshop, and Saber walks along with you. Giving opens a small card that rises over the scene; press and hold an option to confirm it, and COH handles the money.
 
-Day 1, staged this way (`episodes/w01.js`): Mama's kitchen and Nemat's basket swinging at the window (mama catches her: «شايفاكي يا نعمات!»); the football frozen in mid-air in front of your face while you choose; the queue inside Hassan's bakery and the empty board that fills with paper notes if you give; Nemat's kunafa from Zaki's griddle; home again with the bread, the kunafa going up to Nemat on her rope, and mama sending you to Saber with two loaves ("if he won't come to us, stay with him: nobody breaks their fast alone on the first day"); Rizq over Saber on the mosque steps; the hush a minute before maghrib, the cannon, and Saber at the mercy table, on the steps with you, at the ful cart, at a marble table in the koshari shop, or calling the kids to kebab; then mama and Nemat on their way to taraweeh (Nemat says "don't tell your mom" a third time, with mama standing right next to her), and taraweeh in a full mosque with them in the women's front row, the roof with the kids' lanterns, or Saber opening his dusty workshop and lighting the lamp. Every errand someone gives you is done on screen: the bread reaches the iftar table, Nemat gets her kunafa, Saber gets his two loaves. The day ends with its lantern lighting up on the string over the minaret, and a page of your day. Afterwards the hara at night is yours to walk.
+Day 1, staged this way (`episodes/w01.js`): Mama's kitchen and Nemat's basket swinging at the window (mama catches her: «شايفاكي يا نعمات!»); the football frozen in mid-air in front of your face while you choose; the queue inside Hassan's bakery and the empty board that fills with paper notes if you give; twenty loaves for home and Nemat's two for Saber, which Hassan picks from the oven himself and wraps on their own; Nemat's kunafa from Zaki's griddle; home again with the bread, the kunafa going up to Nemat on her rope, and mama sending you to Saber with two loaves ("if he won't come to us, stay with him: nobody breaks their fast alone on the first day"); Rizq over Saber on the mosque steps; the hush a minute before maghrib, the cannon, and Saber at the mercy table, on the steps with you, at Sayed's table by the ful cart (Sayed keeps the blue chair for him, and Hamo sneaks the kids ta'meya), at a marble table in the koshari shop, or calling the kids to kebab; then mama and Nemat on their way to taraweeh (Nemat says "don't tell your mom" a third time, with mama standing right next to her), and taraweeh in a full mosque with them in the women's front row, the roof with the kids' lanterns, or Saber opening his dusty workshop and lighting the lamp. Every errand someone gives you is done on screen: the bread reaches the iftar table, Nemat gets her kunafa, Saber gets his two loaves. The day ends with its lantern lighting up on the string over the minaret, and a page of your day. Afterwards the hara at night is yours to walk.
 
 **Rooms you can walk into** (`js/hara-rooms.js`). Tap a door to go in; a small sign shows near doors. Each room is painted in code and changes with the hour:
 
@@ -34,6 +34,9 @@ Day 1, staged this way (`episodes/w01.js`): Mama's kitchen and Nemat's basket sw
 | الكبابجي, kebab | The charcoal grill and its embers, the meat fridge, checked tablecloths, copper pans |
 | ورشة عم صابر, the workshop | Dusty and shut on Day 1, with outlines on the pegboard where tools were sold and his father's photo; bright and full of wooden lanterns once it reopens |
 | السطوح, the roof | The whole hara's skyline behind you, the minaret lit, the moon, lantern strings, kids with lanterns at night and a kite in the afternoon |
+| خيمة عم سيد, the suhoor tent (suhoor nights only) | Khayamiya walls, a gold crescent behind the stage, curtains of fairy lights, big hanging lanterns. On the stage, a band (tabla, riq, mizmar) and Medhat the tanoura dancer: his skirt spins, goes up over his head like a wheel, then the house lights go down and it glows in neon, and he bows to confetti and applause (a 40-second show that starts when you walk in). Sayed's ful cart with his wife frying ta'meya, Mandour's drinks bar, the aragoz puppet booth with Youssef and Nourah in front of it, families on floor cushions round tables of ful, eggs, cheese and tea, the tea boy going round, two men dancing |
+
+**Suhoor nights** (`js/hara-sahra.js`). Suhoor is its own time of day (2–3 AM): the deepest blue of the night, every lamp still on, the whole city's windows lit. The ful corner becomes خيمة عم سيد: a striped tent with loudspeakers at the door, bulbs running from its lantern pole to the rooftops, music notes and confetti coming out, and the band heard through the cloth as you get close. Hamo stands at the door, a kid waves a sparkler, the cotton-candy man has his pole, and Shady the bread boy runs hot bread from the oven to the tent. The musaharati, Zeinhom, walks the whole hara with his drum and two kids behind him, stops under windows and calls people by name: Nemat, Hassan, Saber, and you. The café is still up, the bakery's oven is lit again, and people who are in the tent aren't anywhere else. To see it: `walk.html?day=2&time=suhoor`, then **ليلة سحور في الحارة** on the title. Scenes in `episodes/wNN.js` can use `time: "suhoor"`.
 
 **Food places follow the fast.** In the afternoon the koshari and kebab shops are empty except for the cooks getting ready; before maghrib there's a takeaway queue; at iftar and after it every table is full and the sound fills up with it. Outside, the street is quiet in the afternoon, busy before iftar, empty at maghrib while everyone eats, and full at night with lines out of the food places.
 
@@ -42,7 +45,7 @@ The hara is a ring of small places. Each has its own ground, people, sound and l
 | Place | What makes it itself |
 |---|---|
 | ساحة الجامع, the mosque square | Limestone slabs and an inlaid star, the striped mosque and minaret, palms, the sabil, the mercy-table tent, the lantern seller, the drinks cart, and the lantern of the days |
-| سوق الحارة, the market lane | Worn cobbles under bunting: the ful cart, koshari, kebab smoke, fruit, dates and qamar el-din, spices |
+| سوق الحارة, the market lane | Worn cobbles under bunting: Sayed's ful cart (Sayed ladling from the copper pot, his son Hamo frying ta'meya, a table and two plastic chairs, a queue with pots before iftar, a taxi driver and a delivery rider at suhoor), koshari, kebab smoke, fruit, dates and qamar el-din, spices |
 | فرن عم حسن, the bakery | The oven's glow, bread cooling in palm trays, the queue, the "suspended bread" board, flour on the ground |
 | قهوة الحارة, the café | Under a huge old sycamore whose crown you can see through when you walk beneath it: tiled terrace, backgammon, the TV, the kiosk on the corner |
 | ملعب العيال, the kids' lot | Dirt, stone goals, hopscotch, the mural wall; kids with lanterns at night |
@@ -83,6 +86,7 @@ Everything is painted in code, with no image files:
 | `js/hara-props.js` | Each place's own things: kiosk, lantern stall, fruit and date stalls, the sycamore, Saber's bench and lanterns, garden stages, mural, arch, Eid swings |
 | `js/hara-world.js` | The hara: the calendar of days, places, buildings, ground, sky and moon, people and what they say, secrets and small deeds |
 | `js/hara-rooms.js` | The rooms you can walk into, their furniture, who is in them at each hour, and which door opens which room |
+| `js/hara-sahra.js` | Suhoor nights: the tent outside and in, the dancer, band and puppets, the musaharati's round, and who is where at suhoor |
 | `js/map.js` | Runs it: camera and zoom, tap-to-walk and pathfinding, doors, routines, place signs and sounds, days, secrets, lighting, dialogue, and the scene controls (`H.map.cut`) |
 | `js/world.js` | The director: title screen, your name, scenes, choices, the giving card, the end of the day, saving |
 | `episodes/w01.js` | Day 1 staged in the world: where each scene happens, who stands where, and its stage directions |
@@ -92,7 +96,7 @@ To look at the art on its own, open http://localhost:5173/tools/sprites.html (ev
 
 The world version saves its progress separately from `classic.html` (it picks up from the scene you left), and keeps found secrets and deeds in the browser. For testing, add `?fast` to the link to walk six times faster; `?turbo` also lets the game take big steps when the tab is in the background.
 
-`episodes/w01.js` is the world version of `episodes/ep01.js`: the same choices, plus staging and one more scene (coming home with the bread before going to Saber), so it has 32 scenes. A line can be words (narration), `{ who, t }` (someone speaks; `"me"` is the player), or a stage direction such as `["walk", "saber", 56, 292, 0]`, `["emote", "malak", "♥"]`, `["cam", "saber+me", 2, 900]`, `["item", "me", "bread"]` or `["cannon"]`; `["flag", "name"]` remembers something mid-scene (for the errands list). The full list is in `js/world.js` (`run`). `classic.html`, the older story-screen version, still plays `episodes/ep01.js`. `node tools/check-episode.js` checks both.
+`episodes/w01.js` is the world version of `episodes/ep01.js`: the same choices, plus staging and one more scene (coming home with the bread before going to Saber), so it has 32 scenes. A line can be words (narration), `{ who, t }` (someone speaks; `"me"` is the player), or a stage direction such as `["walk", "saber", 56, 292, 0]`, `["emote", "nourah", "♥"]`, `["cam", "saber+me", 2, 900]`, `["item", "me", "bread"]` or `["cannon"]`; `["flag", "name"]` remembers something mid-scene (for the errands list). The full list is in `js/world.js` (`run`). `classic.html`, the older story-screen version, still plays `episodes/ep01.js`. `node tools/check-episode.js` checks both.
 
 ## Check an episode before it ships
 
@@ -129,7 +133,7 @@ Day 1 has 2,700 possible paths (31 scenes in `ep01.js`, 32 in the world version)
 | `js/scenes.js` | Living scenes: each painting plus flickering lantern light, sun glow, steam, smoke, embers, dust, pigeons, stars, passers-by, and the football |
 | `js/audio.js` | Sound: ambience for each place, story sound effects, the iftar cannon, and three short music cues |
 | `js/coh-bridge.js` | The only place that talks to the COH app (donate, share, analytics, haptics, user profile) |
-| `js/hara-art.js`, `js/hara-props.js`, `js/hara-world.js`, `js/hara-rooms.js`, `js/map.js`, `js/world.js`, `episodes/w01.js`, `css/map.css`, `css/world.css`, `walk.html` | World version: the pixel-art hara and its rooms, people, days and light, and the story played as scenes inside it |
+| `js/hara-art.js`, `js/hara-props.js`, `js/hara-world.js`, `js/hara-rooms.js`, `js/hara-sahra.js`, `js/map.js`, `js/world.js`, `episodes/w01.js`, `css/map.css`, `css/world.css`, `walk.html` | World version: the pixel-art hara and its rooms, people, days and light, and the story played as scenes inside it |
 | `css/game.css` | Layout and motion |
 | `assets/scenes/` | 12 painted places (WebP, about 80–130 KB each) |
 | `assets/faces/` | 9 character portraits; Saber has two (sad and smiling) |
@@ -164,7 +168,7 @@ steps: {
 ```
 
 - `{m|f}` picks the masculine or feminine form. `{name}` is the player's name.
-- `who` shows the speaker's name and face. Speakers: saber, nemat, hassan, mama, omyoussef, youssef, malak, rizq, sheikh, abuyasser. Use `face` to change the expression, for example `saber_smile`.
+- `who` shows the speaker's name and face. Speakers: saber, nemat, hassan, mama, omyoussef, youssef, nourah, rizq, sheikh, abuyasser. Use `face` to change the expression, for example `saber_smile`.
 - `set` remembers a flag. `if: "flag"` or `if: "!flag"` shows a line or option only when the flag is (or isn't) set.
 - `log` is what appears in the player's recap at the end.
 - `give` is a donation moment. Each option needs a `key` and a `price`. The first option is free, and the prices rise.
@@ -220,6 +224,7 @@ Analytics events:
 **Public link (any phone, no sign-in):** https://youssefaymanefb.github.io/lanterns-of-the-hara/
 
 - It opens the world version (`index.html` forwards to `walk.html`). The older story-screen version is still at https://youssefaymanefb.github.io/lanterns-of-the-hara/classic.html.
+- A suhoor night, with Sayed's tent: https://youssefaymanefb.github.io/lanterns-of-the-hara/walk.html?day=2&time=suhoor
 
 - It's hosted on GitHub Pages from the `main` branch of [YoussefAymanEFB/lanterns-of-the-hara](https://github.com/YoussefAymanEFB/lanterns-of-the-hara).
 - Anyone with the link can play it, and the repository is public. The page asks search engines not to list it.

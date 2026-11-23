@@ -23,9 +23,11 @@
     asr: { amb: [255, 247, 234], on: 0, glow: 0.08, flecks: 1 },
     pre: { amb: [255, 214, 170], on: 0.3, glow: 0.3, long: 1, motes: 1, rays: 1, flecks: 1 },
     maghrib: { amb: [188, 136, 176], on: 1, glow: 0.75 },
-    night: { amb: [80, 86, 156], on: 1, glow: 0.9, moths: 1 }
+    night: { amb: [80, 86, 156], on: 1, glow: 0.9, moths: 1 },
+    // two or three in the morning, before fajr: the deepest blue of the night, every lamp in the hara still on
+    suhoor: { amb: [62, 70, 146], on: 1, glow: 1, moths: 1 }
   };
-  var CLOUD = { asr: ["#FFFFFF", "#E2ECF4"], pre: ["#FFE9C8", "#F2C49A"], maghrib: ["#F2A0A0", "#B86A8A"], night: ["#3A3E74", "#2A2C5A"] };
+  var CLOUD = { asr: ["#FFFFFF", "#E2ECF4"], pre: ["#FFE9C8", "#F2C49A"], maghrib: ["#F2A0A0", "#B86A8A"], night: ["#3A3E74", "#2A2C5A"], suhoor: ["#2C3068", "#20224E"] };
   var DIGITS = "٠١٢٣٤٥٦٧٨٩";
   function ar(n) { return String(n).replace(/\d/g, function (d) { return DIGITS[d]; }); }
 
@@ -52,11 +54,11 @@
   var dlgOpts, dlgP, bars, fadeEl, flashEl, cardEl, cardK, cardT, cardS, clockEl;
   var itemImg = {}, busts = {}, says = [], pray = { t: 0, ph: "qiyam", last: -1 };
   var track = null, deedGo = null, hl = null, starImg = null; // the small deed you asked to see, a highlight on what you tapped
-  var AMB_IN = { asr: [246, 238, 224], pre: [248, 220, 190], maghrib: [164, 136, 160], night: [122, 112, 152] };
-  var ON_IN = { asr: 0.35, pre: 0.5, maghrib: 1, night: 1 };
-  var NAMES = { mama: "ماما", sheikh: "الشيخ عبد الله", abuyasser: "أبو ياسر", sayed: "عم سيد", kebabgi: "الكبابجي", bashir: "عم بشير", sobhy: "صبحي",
-    hassan: "عم حسن", saber: "عم صابر", nemat: "الحاجة نعمات", youssef: "يوسف", malak: "ملك", omyoussef: "أم يوسف", rizq: "المعلم رزق", m3: "أستاذ عادل", zaki: "عم زكي" };
-  var FACES = { mama: "mama", hassan: "hassan", saber: "saber", nemat: "nemat", youssef: "youssef", malak: "malak", omyoussef: "omyoussef", rizq: "rizq" };
+  var AMB_IN = { asr: [246, 238, 224], pre: [248, 220, 190], maghrib: [164, 136, 160], night: [122, 112, 152], suhoor: [116, 106, 150] };
+  var ON_IN = { asr: 0.35, pre: 0.5, maghrib: 1, night: 1, suhoor: 1 };
+  var NAMES = { mama: "ماما", sheikh: "الشيخ عبد الله", abuyasser: "أبو ياسر", sayed: "عم سيد", kebabgi: "الكبابجي", bashir: "عم بشير", sobhy: "صبحي", mesa: "عم زينهم المسحراتي",
+    hassan: "عم حسن", saber: "عم صابر", hamo: "حمو", tayyar: "مصطفى الطيار", nemat: "الحاجة نعمات", youssef: "يوسف", nourah: "نورة", omyoussef: "أم يوسف", rizq: "المعلم رزق", m3: "أستاذ عادل", zaki: "عم زكي" };
+  var FACES = { mama: "mama", hassan: "hassan", saber: "saber", nemat: "nemat", youssef: "youssef", nourah: "nourah", omyoussef: "omyoussef", rizq: "rizq" };
 
   /* ---------------- small helpers ---------------- */
   function el(tag, cls, parent) { var e = document.createElement(tag); if (cls) e.className = cls; if (parent) parent.appendChild(e); return e; }
@@ -69,10 +71,20 @@
   function flags() { return O && O.flags ? O.flags() : {}; }
   function load(k) { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch (e) { return null; } }
   function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  // Suhoor is the end of the night: anything set for "night" is still there then, unless it says hideAt: ["suhoor"].
+  // Something only for suhoor says times: ["suhoor"] (or when: "suhoor" for a line), and comes first in its list.
+  function dark() { return time === "night" || time === "suhoor"; }
+  function isNow(w) { return w === time || (w === "night" && time === "suhoor"); }
+  function timeOk(o) {
+    if (o.hideAt && o.hideAt.indexOf(time) >= 0) return false;
+    return !o.times || o.times.some(isNow);
+  }
+  function setOf(by) { return by[time] != null ? by[time] : time === "suhoor" && by.night != null ? by.night : 0; }
+  function doorNow(d) { return !d.when || d.when.indexOf(time) >= 0; }
   function pickLine(list) {
     for (var i = 0; i < (list || []).length; i++) {
       var e = list[i];
-      if (e.when && e.when !== time) continue;
+      if (e.when && !isNow(e.when)) continue;
       if (e.minDay && day < e.minDay) continue;
       if (e.if && !cond(e.if)) continue;
       return e;
@@ -84,7 +96,7 @@
   function spr(id) {
     if (sprites[id]) return sprites[id];
     var base = id.replace(/\+l$/, ""), spec = WD.CAST[base];
-    if (id !== base) spec = Object.assign({}, spec, { lantern: A.GLASS[base === "malak" ? 4 : 0] });
+    if (id !== base) spec = Object.assign({}, spec, { lantern: A.GLASS[base === "nourah" ? 4 : 0] });
     return (sprites[id] = A.person(spec));
   }
   function propSprite(p, variant) {
@@ -289,6 +301,10 @@
     ["ginger", "grey", "calico", "black"].forEach(function (k) { catSprites[k] = A.cat(k); });
     itemImg.ball = ballImg;
     itemImg.can = A.sprite(15, 11, function (P) { P.r(3, 3, 8, 7, "#4F97E8"); P.r(3, 3, 8, 1, "#9ACCF4"); P.r(9, 4, 2, 6, "#3A78C0"); P.r(11, 4, 2, 1, "#4F97E8"); P.r(12, 3, 2, 1, "#4F97E8"); P.r(13, 2, 1, 2, "#3A78C0"); P.r(4, 1, 6, 1, "#3A78C0"); P.p(3, 2, "#3A78C0"); P.p(10, 2, "#3A78C0"); P.p(5, 5, "#BFE0FA"); });
+    // carried high at suhoor: the tea boy's brass tray, the cotton-candy pole, the bakery boy's bread board
+    itemImg.tea = A.sprite(15, 8, function (P) { P.r(1, 5, 13, 2, "#C8963E"); P.r(1, 5, 13, 1, "#F2C76C"); [2, 6, 10].forEach(function (x) { P.r(x, 1, 3, 4, "#E8F2F4"); P.r(x, 2, 3, 3, "#B8452A"); P.p(x, 1, "#FFFFFF"); }); });
+    itemImg.candy = A.sprite(15, 16, function (P) { P.r(7, 9, 1, 7, "#C9A46A"); [[2, 1], [8, 0], [4, 5], [10, 5], [6, 2]].forEach(function (c, i) { P.el(c[0], c[1], 6, 6, i % 2 ? "#F7A8C8" : "#F48AB8"); P.p(c[0] + 2, c[1] + 1, "#FFE0EE"); }); });
+    itemImg.breadBoard = A.sprite(18, 7, function (P) { P.r(0, 4, 18, 2, "#9C6542"); P.r(0, 4, 18, 1, "#BA8155"); [1, 6, 11].forEach(function (x, i) { P.el(x, 1 + (i % 2), 6, 3, "#D9A25E"); P.p(x + 2, 1 + (i % 2), "#EFC88A"); }); });
     itemImg.cup = A.sprite(9, 10, function (P) { P.r(1, 2, 7, 7, "#C8963E"); P.r(1, 2, 7, 1, "#F2C76C"); P.r(6, 3, 2, 6, "#8A6224"); P.r(2, 1, 5, 1, "#9AD0F0"); P.p(3, 4, "#FFE08A"); });
     starImg = A.sprite(11, 11, function (P) { P.r(5, 0, 1, 11, "#FFD25A"); P.r(0, 5, 11, 1, "#FFD25A"); P.r(4, 2, 3, 7, "#FFE08A"); P.r(2, 4, 7, 3, "#FFE08A"); P.r(4, 4, 3, 3, "#FFF6D0"); P.p(5, 5, "#FFFFFF"); });
     zImg = (function () { var c = A.cv(4, 4); A.Pt(c).map(0, 0, ["zzzz", "..z.", ".z..", "zzzz"], { z: "#F4F0FF" }); return c; })();
@@ -305,8 +321,10 @@
     HARA.houses.forEach(function (b) { b.setDay(d); });
     if (RM) loadLoc(RM.id, true); else rebuild();
   }
+  var builtFor = "";
   function rebuild() {
-    props = G.props.filter(function (p) { return WD.inDays(p.days, day); });
+    builtFor = time === "suhoor" ? "suhoor" : "";
+    props = G.props.filter(function (p) { return WD.inDays(p.days, day) && timeOk(p); });
     canopies = props.filter(function (p) { return p.canopy; });
     emitters = []; coopBirds = [];
     makeGrid();
@@ -373,7 +391,7 @@
 
   // strings of flags, lanterns, bulbs, the banner, and the lantern of the days
   function makeStrings() {
-    strings = G.strings.filter(function (s) { return WD.inDays(s.days, day); }).map(function (s, si) {
+    strings = G.strings.filter(function (s) { return WD.inDays(s.days, day) && timeOk(s); }).map(function (s, si) {
       var len = hyp(s.x0, s.y0, s.x1, s.y1), n = Math.ceil(len), pts = [], items = [];
       for (var i = 0; i <= n; i++) { var t = i / n; pts.push([s.x0 + (s.x1 - s.x0) * t, s.y0 + (s.y1 - s.y0) * t + s.sag * 4 * t * (1 - t)]); }
       if (s.k === "days") {
@@ -422,8 +440,10 @@
       ((G.roofs && G.roofs.wins) || []).forEach(function (w) { add(w[0] + w[2] / 2, w[1] + w[3] / 2, 11, [255, 196, 120], "on", { g: 0.4 }); });
       add(G.minaret.top.x, G.minaret.top.y, 24, [255, 240, 200], "on", { g: 0.8 });
     }
-    (G.lights || []).forEach(function (L) { add(L.x, L.y, L.r, L.c, L.when, { fl: L.fl || 0, g: L.g == null ? 0.5 : L.g, need: L.need || null }); });
+    (G.lights || []).forEach(function (L) { if (timeOk(L)) add(L.x, L.y, L.r, L.c, L.when, { fl: L.fl || 0, g: L.g == null ? 0.5 : L.g, need: L.need || null, dyn: L.dyn || null }); });
     props.forEach(function (p) {
+      // more lights on one thing: [dx, dy, rgb, radius, { fl, g, dyn }] from its base (the suhoor tent)
+      (p.lights || []).forEach(function (L) { add(p.x + L[0], p.y + L[1], L[3], L[2], "on", Object.assign({ g: 0.8 }, L[4] || {})); });
       if (!p.light) return;
       var sp = propSprite(p), top = propTop(p, sp);
       if (p.light === "own") { (sp.lights || []).forEach(function (L) { add(p.x + L[0], top + L[1], L[3], L[2], "on", { g: 0.85 }); }); return; }
@@ -475,8 +495,10 @@
     if (RM) { populateRoom(); return; }
     var tm = time, nematH = houseBy("nemat"), homeH = houseBy("home");
     WD.PEOPLE.forEach(function (p) {
-      var pos = p.pos[tm], sid = p.id, face = p.face, later = p.posLater;
-      if (later && day >= later.from && later.times.indexOf(tm) >= 0) { pos = later.at; if (later.cast) sid = later.cast; if (later.face) face = later.face; }
+      // at suhoor people stay where they were at night, unless their pos says suhoor (null: not out in the hara)
+      var away = tm === "suhoor" && p.pos.hasOwnProperty("suhoor");
+      var pos = away ? p.pos.suhoor : p.pos[tm] || (tm === "suhoor" ? p.pos.night : null), sid = p.id, face = p.face, later = p.posLater;
+      if (later && !away && day >= later.from && later.times.some(isNow)) { pos = later.at; if (later.cast) sid = later.cast; if (later.face) face = later.face; }
       if (!pos) return;
       var pose = pos[3] || null;
       if (pose === "roof") sid = sid + "+l";
@@ -493,7 +515,7 @@
       actors.push(a);
     });
     WD.EXTRAS.forEach(function (x) {
-      if (x.times.indexOf(tm) < 0 || !WD.inDays(x.days, day)) return;
+      if (!timeOk(x) || !WD.inDays(x.days, day)) return;
       var a;
       if (x.sitAt) {
         var ch = props.filter(function (p) { return p.seat === x.sitAt; })[0];
@@ -501,9 +523,28 @@
         a = actor(x.cast, ch.x + 5, ch.y - 1, ch.sitDir); a.sit = true; a.sortY = ch.y + 0.3; a.talkAt = [ch.x + 4, ch.y + 12];
       } else { a = actor(x.cast, x.at[0], x.at[1], x.at[2]); if (x.at[3] === "sit") a.sit = true; }
       if (x.behind) { a.clip = x.behind[0]; a.sortY = x.behind[1]; a.talkAt = [a.x, x.behind[1] + 10]; }
+      if (x.talk) a.talkAt = x.talk;
+      if (x.serve) { a.serve = rnd(0.4, 2); a.serveK = x.serve; }
+      if (x.dance) a.dance = rnd(0, 1);
+      if (x.sparkle) a.sparkle = true;
+      if (x.loop) { a.route = { pts: x.loop, i: 0, wait: rnd(0.5, 2), pause: x.pause || [1.5, 3.5] }; a.speed = SPEED * (x.speed || 0.45); }
+      if (x.hold) a.item = { k: x.hold, t: 9 };
       a.kind = "extra"; a.name = x.name; a.lines = x.say; a.homeDir = a.dir; a.queue = x.role === "queue"; a.cast = x.cast;
       actors.push(a);
     });
+    // at suhoor the musaharati walks the whole hara with his drum, calling people by name, two kids behind him
+    if (tm === "suhoor" && WD.MESA) {
+      var M = WD.MESA, r0 = M.route[0], ms = actor(M.cast, r0[0], r0[1], 3);
+      ms.kind = "extra"; ms.name = M.name; ms.lines = M.say; ms.cast = M.cast; ms.homeDir = 0;
+      ms.route = { i: 0, wait: 2, first: true }; ms.speed = SPEED * 0.42;
+      actors.push(ms);
+      M.kids.forEach(function (k, i) {
+        var kd = actor(k.cast, r0[0] - 10 - i * 9, r0[1] + 3 + i * 2, 3);
+        kd.kind = "extra"; kd.name = k.name; kd.lines = k.say; kd.cast = k.cast.replace(/\+l$/, ""); kd.homeDir = 0;
+        kd.trail = { lead: ms, dx: -11 - i * 9, dy: 2 + i * 3, t: i * 0.2 }; kd.speed = SPEED * 0.5;
+        actors.push(kd);
+      });
+    }
     // at sunset the street empties: everyone is at the mercy tables
     if (tm === "maghrib") {
       var diners = ["w1", "m1", "k2", "m3", "w3", "k1", "m2", "w2", "k3", "m4"];
@@ -518,7 +559,7 @@
         }
       });
     }
-    var n = { asr: 4, pre: 9, maghrib: 1, night: 11 }[tm] || 4;
+    var n = { asr: 4, pre: 9, maghrib: 1, night: 11, suhoor: 12 }[tm] || 4;
     var pool = WD.WALKERS.slice().sort(function () { return Math.random() - 0.5; });
     for (var w = 0; w < n && w < pool.length; w++) {
       var wp = WD.WAYPOINTS[(Math.random() * WD.WAYPOINTS.length) | 0];
@@ -529,18 +570,18 @@
     }
     var kids = actors.filter(function (a) { return a.play; });
     ball = kids.length === 2 ? { x: kids[0].x + 5, y: kids[0].y + 1, z: 0, vx: 0, vy: 0, vz: 0, holder: kids[0], other: kids[1], wait: 1, kids: kids } : null;
-    cats = WD.CATS.filter(function (c) { return WD.inDays(c.days, day); }).map(function (c) {
-      return { coat: c.coat, x: c.at[0], y: c.at[1], z: c.z || 0, mode: tm === "night" && c.mode === "wander" ? "sit" : c.mode, area: c.area, dir: Math.random() < 0.5 ? 0 : 1, t: rnd(1, 5), walk: null, zt: rnd(0, 2) };
+    cats = WD.CATS.filter(function (c) { return WD.inDays(c.days, day) && timeOk(c); }).map(function (c) {
+      return { coat: c.coat, x: c.at[0], y: c.at[1], z: c.z || 0, mode: dark() && c.mode === "wander" ? "sit" : c.mode, area: c.area, dir: Math.random() < 0.5 ? 0 : 1, t: rnd(1, 5), walk: null, zt: rnd(0, 2) };
     });
     // kids flying kites from the rooftops, in the afternoon
     kites = (tm === "asr" || tm === "pre") ? (G.kites || []).map(function (k, i) {
       var a = actor(k.cast, k.at[0], k.at[1], 1);
-      a.kind = "extra"; a.name = ["عمر", "نور"][i] || "طفل"; a.lines = ["«{شايف|شايفة} طيارتي؟ أعلى واحدة في الحارة!»", "«الهوا حلو النهارده!»"]; a.homeDir = 1; a.kite = k; a.noTurn = true;
+      a.kind = "extra"; a.name = ["عمر", "جنى"][i] || "طفل"; a.lines = ["«{شايف|شايفة} طيارتي؟ أعلى واحدة في الحارة!»", "«الهوا حلو النهارده!»"]; a.homeDir = 1; a.kite = k; a.noTurn = true;
       actors.push(a);
       return { a: a, k: k, ph: Math.random() * 6 };
     }) : [];
     pigeons = [];
-    if (tm !== "night") WD.FLOCKS.forEach(function (f) {
+    if (!dark()) WD.FLOCKS.forEach(function (f) {
       for (var i = 0; i < f.n; i++) {
         var tint = ["#9C98A6", "#B4B0BC", "#8A8494", "#C9C2B8"][i % 4];
         if (!pigeonSprCache[tint]) pigeonSprCache[tint] = A.pigeon(tint);
@@ -553,7 +594,8 @@
   // the people of a room, from js/hara-rooms.js, for this hour
   function populateRoom() {
     kites = []; pigeons = []; ball = null;
-    (RM.people ? RM.people(time, day, flags()) : []).forEach(function (e) {
+    var rt = RM.suhoor || time !== "suhoor" ? time : "night"; // rooms that don't know suhoor yet keep their night
+    (RM.people ? RM.people(rt, day, flags()) : []).forEach(function (e) {
       var a = actor(e.cast, e.at[0], e.at[1], e.at[2]);
       a.cid = e.id || null; a.cast = e.cast.replace(/\+l$/, ""); a.name = e.name || NAMES[a.cast] || ""; a.face = e.face || null; a.homeDir = e.at[2];
       if (e.id) { a.kind = "story"; a.person = { id: e.id, name: a.name, face: e.face, say: e.say || [] }; } else { a.kind = "extra"; a.lines = e.say && e.say.length ? e.say : null; }
@@ -565,6 +607,14 @@
       if (e.pray) a.pray = e.pray;
       if (e.sleep) a.sleepZ = 1;
       if (e.kite) { a.noTurn = true; kites.push({ a: a, k: { to: [-56, -110], c: "#E8503F" }, ph: Math.random() * 6 }); }
+      if (e.serve) { a.serve = rnd(0.4, 2); a.serveK = e.serve; }
+      if (e.dance) a.dance = rnd(0, 1);
+      if (e.sparkle) a.sparkle = true;
+      if (e.draw) { a.custom = e.draw; a.noTurn = true; }
+      if (e.loop) { a.route = { pts: e.loop, i: 0, wait: rnd(0.5, 2), pause: e.pause || [1.5, 3.5] }; a.speed = SPEED * (e.speed || 0.45); }
+      if (e.hold) a.item = { k: e.hold, t: 9 };
+      if (e.sortY) a.sortY = e.sortY;
+      if (e.react) a.react = e.react;
       actors.push(a);
     });
     cats = (RM.cats || []).map(function (c) { return { coat: c.coat, x: c.at[0], y: c.at[1], z: c.z || 0, mode: c.mode, area: c.area, dir: 0, t: rnd(1, 5), walk: null, zt: rnd(0, 2) }; });
@@ -612,7 +662,7 @@
   function nearestSpot() {
     if (RM) return LOC;
     var best = "home", bd = 1e9;
-    Object.keys(WD.SPOTS).forEach(function (k) { var s = WD.SPOTS[k].stand, d = hyp(player.x, player.y, s[0], s[1]); if (d < bd) { bd = d; best = k; } });
+    Object.keys(WD.SPOTS).forEach(function (k) { if (!timeOk(WD.SPOTS[k])) return; var s = WD.SPOTS[k].stand, d = hyp(player.x, player.y, s[0], s[1]); if (d < bd) { bd = d; best = k; } });
     return best;
   }
 
@@ -702,7 +752,7 @@
   }
   function spotAction(id) {
     var d = H.rooms && H.rooms.DOORS[id];
-    if (d && H.rooms.has(d.room)) { tryDoor(d); return; }
+    if (d && H.rooms.has(d.room) && doorNow(d)) { tryDoor(d); return; }
     look(id);
   }
   function tryDoor(d) {
@@ -804,7 +854,7 @@
       var keys = Object.keys(WD.SPOTS);
       for (var k = 0; k < keys.length; k++) {
         var s = WD.SPOTS[keys[k]];
-        if (s.tap && wx > s.tap[0] && wx < s.tap[0] + s.tap[2] && wy > s.tap[1] && wy < s.tap[1] + s.tap[3]) { goToSpot(keys[k]); return; }
+        if (s.tap && timeOk(s) && wx > s.tap[0] && wx < s.tap[0] + s.tap[2] && wy > s.tap[1] && wy < s.tap[1] + s.tap[3]) { goToSpot(keys[k]); return; }
       }
     }
     for (var j = 0; j < looks.length; j++) {
@@ -1052,6 +1102,7 @@
     var D = WD.DAYS, sub = P.sub, bed = P.bed;
     if (P.id === "workshop" && day >= D.workshopOpen) { sub = P.subOpen; bed = P.bedOpen; }
     if (P.id === "garden" && day >= D.gardenOpen) sub = day >= D.gardenGreen ? P.subGreen : P.subOpen;
+    if (time === "suhoor") { if (P.subSuhoor) sub = P.subSuhoor; if (P.bedSuhoor) bed = P.bedSuhoor; }
     return { name: P.name, sub: sub, bed: bed };
   }
   function checkPlace(dt) {
@@ -1089,6 +1140,36 @@
   }
 
   /* ---------------- life ---------------- */
+  // someone with a round to walk: the musaharati through the hara at suhoor, the tea boy between the tables
+  function stepRoute(a, dt) {
+    var r = a.route, M = WD.MESA, pts = r.pts || (M && M.route) || [];
+    if (!pts.length) return;
+    if (!r.pts) { // the musaharati beats his drum as he goes: dum, dum, dum-dum
+      r.drum = (r.drum == null ? 1 : r.drum) - dt;
+      if (r.drum <= 0) {
+        r.drum = a.path ? 2.4 : 1.6; a.kick = 0.22;
+        var d = hyp(player.x, player.y, a.x, a.y), au = audio();
+        if (d < 150 && au && au.fxv) au.fxv("baza", Math.max(0.12, 1 - d / 150));
+      }
+    }
+    function stop() {
+      if (r.pts) { r.wait = rnd(r.pause[0], r.pause[1]); a.dir = pts[r.i][2] != null ? pts[r.i][2] : a.dir; return; }
+      // the musaharati stops, looks up at the windows and calls the names of the people who live there
+      r.wait = 3.6; a.dir = 1;
+      says = says.filter(function (s) { return s.a !== a; });
+      if (pts[r.i][2]) says.push({ a: a, t: fmt(pts[r.i][2]), until: T + 3.2 });
+      actors.forEach(function (k) { if (k.trail && k.trail.lead === a && Math.random() < 0.7) { k.jv = 70; k.emote = { k: "♪", t: 0 }; } });
+    }
+    if (r.first) { r.first = false; stop(); return; }
+    if (a.path) { if (moveActor(a, dt)) stop(); return; }
+    r.wait -= dt;
+    if (r.wait <= 0) {
+      r.i = (r.i + 1) % pts.length;
+      var p = pts[r.i];
+      a.path = findPath(a.x, a.y, p[0], p[1]);
+      if (!a.path) r.wait = 1;
+    }
+  }
   function thinkActors(dt) {
     actors.forEach(function (a) {
       if (a === player) return;
@@ -1111,6 +1192,26 @@
       if (a.scripted) { if (a.path) moveActor(a, dt); return; }
       if (a.pray) return;
       if (a.talking) return;
+      if (a.route) { stepRoute(a, dt); return; }
+      if (a.trail) { // a kid behind the musaharati, lantern up
+        var ld = a.trail.lead;
+        a.trail.t -= dt;
+        if (a.path) moveActor(a, dt);
+        if (a.trail.t <= 0) {
+          a.trail.t = 0.4;
+          var tx = ld.x + (ld.dir === 2 ? -a.trail.dx : a.trail.dx), ty = ld.y + a.trail.dy;
+          if (hyp(a.x, a.y, tx, ty) > 7) { a.path = findPath(a.x, a.y, tx, ty); a.speed = SPEED * (hyp(a.x, a.y, tx, ty) > 30 ? 0.75 : 0.5); }
+          else if (!a.path) a.dir = ld.moving ? ld.dir : (ld.x < a.x ? 2 : 3);
+        }
+        return;
+      }
+      if (a.dance != null) { // on their feet with the music: a step, a turn, a step
+        a.dance += dt;
+        a.danceF = ((a.dance * 4.2) | 0) % 4;
+        var turn = ((a.dance / 1.1) | 0) % 4;
+        a.dir = [0, 2, 0, 3][turn];
+        return;
+      }
       if (a.noTurn) { a.dir = 1; return; }
       if (a.work) { // Saber at his bench: tap, tap, sawdust
         a.work -= dt;
@@ -1118,6 +1219,22 @@
           a.work = rnd(0.55, 1.1); a.kick = 0.16;
           for (var s = 0; s < 3; s++) parts.push({ k: "dust", x: a.x + rnd(-4, 4), y: a.y - 12, vx: rnd(-8, 8), vy: rnd(-10, -4), life: 0, max: rnd(0.4, 0.7), c: "#F2DEB0" });
           if (near(a.x, a.y, 40)) sfx("knock");
+        }
+        return;
+      }
+      if (a.serve) { // behind the ful cart: Sayed turns to his pot and ladles; Hamo flips ta'meya and the oil spits
+        a.serve -= dt;
+        if (a.serve <= 0) {
+          if (a.serveK === "ful") {
+            if (a.dir !== 2) {
+              a.dir = 2; a.kick = 0.25; a.serve = rnd(0.6, 0.9);
+              for (var q = 0; q < 2; q++) parts.push({ k: "dust", x: a.x - 10 + rnd(-2, 2), y: a.y - 30, vx: rnd(-3, 3), vy: rnd(-12, -7), life: 0, max: rnd(0.6, 0.9), c: "#F4EFE6" });
+              if (near(a.x, a.y, 44)) sfx("ladle");
+            } else { a.dir = 0; a.serve = rnd(1.6, 3.4); }
+          } else {
+            a.dir = 0; a.kick = 0.18; a.serve = rnd(0.7, 1.5);
+            for (var o2 = 0; o2 < 3; o2++) parts.push({ k: "dust", x: a.x + rnd(-4, 4), y: a.y - 18, vx: rnd(-9, 9), vy: rnd(-14, -6), life: 0, max: rnd(0.25, 0.45), c: "#FFE6A0" });
+          }
         }
         return;
       }
@@ -1281,7 +1398,19 @@
     // secrets twinkle now and then, for whoever looks closely
     if (!RM && Math.random() < dt * 0.9) WD.SECRETS.forEach(function (s) { if (!memories[s.id] && near(s.at[0], s.at[1], 0) && Math.random() < 0.35) parts.push({ k: "twinkle", x: s.at[0] + rnd(-5, 5), y: s.at[1] + rnd(-5, 5), vx: 0, vy: -2, life: 0, max: 0.9 }); });
     // the café radio at night
-    if (time === "night" && Math.random() < dt * 0.35) { var cf = houseBy("cafe"); if (cf && near(cf.x + 40, cf.base - 20, 20)) parts.push({ k: "note", x: cf.x + rnd(16, 70), y: cf.base - 26, vx: rnd(-3, 3), vy: -8, life: 0, max: 2.2 }); }
+    // a kid waving a sparkler (شمروخ): gold sparks in every direction
+    actors.forEach(function (a) {
+      if (!a.sparkle || !near(a.x, a.y, 20) || Math.random() > dt * 22) return;
+      var hx = a.x + (a.dir === 2 ? -6 : 6) + Math.sin(T * 7) * 2, hy = a.y - (a.sp.kid ? 22 : 27) + Math.cos(T * 7) * 2;
+      parts.push({ k: "spark", x: hx, y: hy, vx: rnd(-22, 22), vy: rnd(-26, 8), life: 0, max: rnd(0.25, 0.5) });
+    });
+    // music spilling out of a place (the suhoor tent): notes rising over it, and now and then a pop of confetti
+    props.forEach(function (p) {
+      if (!p.notes || !near(p.x + p.notes[0], p.y + p.notes[1], 30)) return;
+      if (Math.random() < dt * 1.6) parts.push({ k: "note", x: p.x + p.notes[0] + rnd(-p.notes[2], p.notes[2]), y: p.y + p.notes[1], vx: rnd(-4, 4), vy: rnd(-12, -8), life: 0, max: rnd(1.8, 2.6) });
+      if (p.confetti && Math.random() < dt * 0.12) burst("confetti", p.x + p.confetti[0], p.y + p.confetti[1], 8);
+    });
+    if (dark() && Math.random() < dt * 0.35) { var cf = houseBy("cafe"); if (cf && near(cf.x + 40, cf.base - 20, 20)) parts.push({ k: "note", x: cf.x + rnd(16, 70), y: cf.base - 26, vx: rnd(-3, 3), vy: -8, life: 0, max: 2.2 }); }
     for (var i2 = parts.length - 1; i2 >= 0; i2--) {
       var p = parts[i2];
       p.life += dt;
@@ -1300,7 +1429,7 @@
 
   function stepSky(dt) {
     clouds.forEach(function (c) { c.x += c.s * dt; if (c.x > W + 10) { c.x = -c.w - rnd(0, 60); c.y = rnd(8, 58); } });
-    if (time !== "night" && !skyBirds.length && Math.random() < dt * 0.06) {
+    if (!dark() && !skyBirds.length && Math.random() < dt * 0.06) {
       var dir = Math.random() < 0.5 ? 1 : -1, y = rnd(14, 50);
       for (var i = 0; i < 4 + ((Math.random() * 3) | 0); i++) skyBirds.push({ x: dir > 0 ? -20 - i * 9 : W + 20 + i * 9, y: y + (i % 2) * 5 + i * 2, v: dir * rnd(16, 20), ph: rnd(0, 6) });
     }
@@ -1396,6 +1525,19 @@
   // what a room's own drawings get to paint with, in art pixels
   var RAo = { rect: function (x, y, w, h, c) { rect(x, y, w, h, c); }, img: function (c, x, y) { img(c, x, y); }, text: function (t, x, y, h, fg, f) { text(t, x, y, h, fg, f); }, alpha: function (a) { ctx.globalAlpha = a; } };
   function RA() { RAo.T = T; RAo.on = lightsOn; RAo.time = time; RAo.day = day; RAo.st = RM ? RM.st : {}; return RAo; }
+  // what a room's tick (RM.tick) may do with its people: the crowd in the tent cheers the dancer
+  var roomApi = {
+    actors: function () { return actors; },
+    by: function (id) { return actors.filter(function (a) { return a.cid === id; })[0] || null; },
+    emote: function (a, k) { if (a && !a.talking && bubbles[k]) a.emote = { k: k, t: 0 }; },
+    say: function (a, t, s) { if (!a || a.talking) return; says = says.filter(function (x) { return x.a !== a; }); says.push({ a: a, t: fmt(t), until: T + (s || 2) }); },
+    jump: function (a) { if (a && !a.talking) { a.jv = 66; a.jz = Math.max(0.01, a.jz || 0); } },
+    sfx: function (n, v) { var au = audio(); if (au && au.fxv) au.fxv(n, v == null ? 1 : v); },
+    burst: function (k, x, y, n) { burst(k, x, y, n); },
+    note: function (x, y) { parts.push({ k: "note", x: x + rnd(-3, 3), y: y, vx: rnd(-4, 4), vy: -10, life: 0, max: 2 }); },
+    busy: function () { return !!talk || cutOn; },
+    dist: function (x, y) { return hyp(player.x, player.y, x, y); }
+  };
   function drawGround() {
     if (RM) {
       (RM.fixtures || []).forEach(function (f) { if (f.layer === "under") f.draw(RA()); });
@@ -1423,7 +1565,7 @@
     if (RM || cam.y > 150) return;
     if (skyOld && skyFade < 1) { img(skyOld, 0, 0); ctx.globalAlpha = skyFade; img(sky, 0, 0); ctx.globalAlpha = 1; }
     else img(sky, 0, 0);
-    if (time === "night") for (var i = 0; i < 18; i++) { var tw = Math.sin(T * 2 + i * 1.7); if (tw > 0.3) rect((i * 97 + 31) % W, (i * 53 + 11) % 90, 1, 1, tw > 0.8 ? "#FFFFFF" : "#C9CDF0"); }
+    if (dark()) for (var i = 0; i < 18; i++) { var tw = Math.sin(T * 2 + i * 1.7); if (tw > 0.3) rect((i * 97 + 31) % W, (i * 53 + 11) % 90, 1, 1, tw > 0.8 ? "#FFFFFF" : "#C9CDF0"); }
     var cc = CLOUD[time] || CLOUD.asr;
     clouds.forEach(function (c) {
       var x = Math.round(c.x), y = Math.round(c.y);
@@ -1491,9 +1633,11 @@
     var v = "";
     if (p.sway) { var s = Math.sin(T * 1.3 + p.x); v = s > 0.55 ? "sway1" : s < -0.55 ? "sway-1" : ""; }
     if (p.k === "iftarTable") v = time === "maghrib" ? "diners" : time === "pre" ? "set" : "";
-    if (p.setBy) v = "#" + (p.setBy[time] || 0);
+    if (p.setBy) v = "#" + setOf(p.setBy);
     var sp = propSprite(p, v), top = propTop(p, sp);
+    if (p.under) p.under(RA(), p.x, top, p); // what you see through an opening in it (the tent's doorway)
     img(sp, p.x, top);
+    if (p.anim) p.anim(RA(), p.x, top, p); // things that move on a prop: bulbs chasing round a sign, puppets
     if (p.sign) text(p.sign.t, p.x + p.sign.dx, p.y + p.sign.dy, p.sign.h, p.sign.fg || "#FFE7A0");
     if (p.k === "kiosk" && lightsOn > 0.3) { ctx.globalAlpha = 0.5 * lightsOn; rect(p.x + 17, top + 13, 4, 1, "#FFFFFF"); ctx.globalAlpha = 1; }
     if (p.k === "tvCab") drawTv(p.x + 3, top + 2);
@@ -1638,15 +1782,21 @@
     }
   }
   function drawActor(a) {
+    if (a.custom) { // someone drawn by hand, every frame (the tanoura dancer)
+      a.custom(RA(), a.x, a.y, a);
+      if (a.emote && bubbles[a.emote.k] && a.emote.t > 0.08) img(bubbles[a.emote.k], a.x - 6, a.y - 48);
+      return;
+    }
     if (a.pray && a.prayLag == null) a.prayLag = a.pray === "imam" ? 0 : a === player ? 0.35 : 0.15 + Math.random() * 0.45;
     var sp = a.sp, f, pp = a.prayPose || (a.pray ? prayPoseAt(pray.t - (a.prayLag || 0)) : null);
     if (pp) f = prayFrames(sp)[pp] || sp.f[1][0];
     else if (a.sit) f = sp.sit[a.dir];
     else if (a.kick > 0) f = sp.f[a.dir][1];
     else if (a.moving) f = sp.f[a.dir][a.frame];
+    else if (a.dance != null) f = sp.f[a.dir][a.danceF || 0];
     else if (a.blink < 0 && a.dir !== 1) f = sp.blink[a.dir];
     else f = sp.f[a.dir][0];
-    var bob = a.moving && (a.frame === 1 || a.frame === 3) ? -1 : 0, jz = a.jz || 0;
+    var bob = (a.moving && (a.frame === 1 || a.frame === 3)) || (a.dance != null && a.danceF % 2) ? -1 : 0, jz = a.jz || 0;
     var shx = a.shiver > 0 ? (((T * 28) | 0) % 2 ? 0.5 : -0.5) : 0;
     if (!a.clip && !a.sit) {
       if (jz > 0) ctx.globalAlpha = Math.max(0.3, 1 - jz / 14);
@@ -1786,7 +1936,7 @@
     });
   }
   function drawCoopBirds() {
-    if (time === "night") return;
+    if (dark()) return;
     coopBirds.forEach(function (b) {
       var x = b.cx + Math.cos(b.a) * b.r, y = b.cy + Math.sin(b.a) * b.r * 0.35 - 6;
       if (!visible(x - 4, y - 4, x + 4, y + 4)) return;
@@ -1848,7 +1998,7 @@
     Object.keys(D).forEach(function (k) {
       if (k === "steps" || k === "roof") return;
       var s = WD.SPOTS[k];
-      if (!s || hyp(player.x, player.y, s.stand[0], s.stand[1]) > 36) return;
+      if (!s || !doorNow(D[k]) || !timeOk(s) || hyp(player.x, player.y, s.stand[0], s.stand[1]) > 36) return;
       if (OB && OB.goals.some(function (g) { var m = markOf(g); return m && m.spot === k; })) return;
       label((D[k].open && !D[k].open(day, flags()) ? "مقفول · " : "ادخل · ") + s.name, s.mark[0], s.mark[1] + 8);
     });
@@ -1946,12 +2096,13 @@
     var daytime = time === "asr" || time === "pre";
     lights.forEach(function (L, i) {
       if (L.need && !(RM && RM.st[L.need])) return;
-      var k = L.when === "always" ? Math.max(0.55, on) : L.when === "day" ? (daytime ? 0.7 : 0) : L.when === "night" ? (time === "night" ? 1 : 0) : on;
+      var k = L.when === "always" ? Math.max(0.55, on) : L.when === "day" ? (daytime ? 0.7 : 0) : L.when === "night" ? (dark() ? 1 : 0) : on;
       if (k <= 0.01) return;
       var fl = L.fl === 1 ? 0.82 + 0.18 * Math.sin(T * 13 + i) * Math.sin(T * 7.3 + i * 2) : L.fl === 2 ? 0.7 + 0.3 * Math.sin(T * 5 + i) : 1;
-      var x = L.x;
+      var x = L.x, c = L.c;
+      if (L.dyn) { var dy = L.dyn(T, RM ? RM.st : null); if (!dy || dy[0] <= 0.01) return; fl *= dy[0]; if (dy[1]) c = dy[1]; } // a light that pulses or changes colour (the stage)
       if (L.item) x += Math.sin(T * 1.6 + L.item.ph) * 0.7;
-      light(x, L.y, L.r, L.c, k * 0.9 * fl, k * gl * L.g * fl * 0.75);
+      light(x, L.y, L.r, c, k * 0.9 * fl, k * gl * L.g * fl * 0.75);
     });
     actors.forEach(function (a) {
       if (!a.sp.lan || !a.sp.lan[a.dir] || a.sit) return;
@@ -1971,7 +2122,7 @@
         gctx.fillStyle = gg; gctx.beginPath(); gctx.moveTo(x0, y0); gctx.lineTo(x0 + ww, y0); gctx.lineTo(x0 + ww + sl, y0 + hh + drop); gctx.lineTo(x0 + sl, y0 + hh + drop); gctx.closePath(); gctx.fill();
         light(w.x + w.w / 2 + 22, RM.wall + 26, w.w * 1.3, warm, 0.55, 0.12);
         if (w.glass) [[255, 90, 80], [90, 150, 255], [255, 220, 90], [90, 220, 130], [200, 120, 255]].forEach(function (c, i) { light(w.x + 4 + i * 5 + 22, RM.wall + 20 + (i % 2) * 8, 9, c, 0.6, 0.4); });
-      } else if (time === "night") light(w.x + w.w / 2, w.y + w.h / 2, w.w, [120, 150, 255], 0.3, 0.12);
+      } else if (dark()) light(w.x + w.w / 2, w.y + w.h / 2, w.w, [120, 150, 255], 0.3, 0.12);
     });
     if (TM.rays && !RM) {
       for (var r = 0; r < 4; r++) {
@@ -1989,8 +2140,9 @@
   function onGoal() { return RM && !RM.roof ? ON_IN[time] : TM.on; }
   function ambGoal() {
     if (!RM || RM.roof) return TM.amb;
-    var a = AMB_IN[time];
+    var a = (RM.amb && RM.amb[time]) || AMB_IN[time]; // a room can have its own light (the tent is warm and bright)
     if (RM.dim && !RM.st.lamp) a = a.map(function (v) { return v * (1 - RM.dim); });
+    if (RM.showDim) { var sd = RM.showDim(T); if (sd) a = a.map(function (v) { return v * (1 - sd); }); } // the lights go down for the show
     return a;
   }
   function stepFx(a, dt) {
@@ -2015,7 +2167,8 @@
     checkTrigger();
     if (talk) stepTalk(dt);
     actors.forEach(function (a) { if (a.kick > 0) a.kick -= dt; stepFx(a, dt); });
-    if (RM && RM.pray && time === "night") stepPray(dt);
+    if (RM && RM.pray && dark()) stepPray(dt);
+    if (RM && RM.tick) RM.tick(RA(), dt, roomApi);
     thinkActors(dt); thinkBall(dt); thinkCats(dt); thinkPigeons(dt); stepParts(dt);
     if (!RM) stepSky(dt);
     checkPlace(dt);
@@ -2316,6 +2469,7 @@
       sky = HARA.sky(nt, day);
     }
     time = nt; TM = TIMES[time];
+    if (G && !RM && builtFor !== (time === "suhoor" ? "suhoor" : "")) rebuild(); // the hara at suhoor has its own things up (the tent)
     if (instant) { lightsOn = onGoal(); amb = ambGoal().slice(); }
     if (root) root.className = "map on t-" + time + (cutOn ? " cut" : "") + (O && O.title ? " title" : "");
   }
