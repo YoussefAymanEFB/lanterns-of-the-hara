@@ -208,3 +208,40 @@ html:has(#app.world) { overflow: hidden; } /* the page itself never scrolls side
   .wl-card .wl-panel, .wl-give .wl-panel, .wl-journal .wl-panel, .wl-t-k, .wl-t-logo, .wl-t-sub, .wl-t-acts, .wl-t-links, .mp-opt, .wl-g-opt, .mp-card.on .mp-card-t, .mp-card.on .mp-card-s, .mp-card::before { animation: none !important; }
   .mp-bars i { transition: none; }
 }
+
+/* the fair's games (js/hara-games.js): the stall close up, in its own frame over the hara */
+.gm { position: absolute; inset: 0; z-index: 40; display: grid; place-items: center; padding: calc(env(safe-area-inset-top, 0px) + 10px) 10px calc(env(safe-area-inset-bottom, 0px) + 10px); background: rgba(10, 6, 22, 0.72); opacity: 0; transition: opacity 0.25s; }
+.gm.on { opacity: 1; }
+.gm[hidden] { display: none; }
+.gm-box { position: relative; width: min(94vw, 420px, calc((100dvh - 150px) * 0.8)); display: flex; flex-direction: column; gap: 8px; padding: 10px 10px 12px; border-radius: 16px; background: linear-gradient(180deg, #3A2238, #24142A); border: 3px solid #C8963E; box-shadow: 0 0 0 2px #5A3A20, 0 18px 40px rgba(0, 0, 0, 0.55); color: #FFF0CF; transform: translateY(14px) scale(0.97); transition: transform 0.28s cubic-bezier(.2, 1.4, .4, 1); }
+.gm.on .gm-box { transform: none; }
+.gm-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 2px 0 40px; }
+.gm-title { font-family: var(--f-title, "Aref Ruqaa", serif); font-size: 1.45rem; color: #FFD98A; line-height: 1.1; }
+.gm-stats { display: flex; gap: 8px; font-size: 0.9rem; font-weight: 600; }
+.gm-stats span { padding: 2px 9px; border-radius: 99px; background: rgba(255, 220, 150, 0.14); border: 1px solid rgba(255, 220, 150, 0.3); white-space: nowrap; }
+.gm-cv { width: 100%; aspect-ratio: 120 / 150; image-rendering: pixelated; border-radius: 10px; border: 2px solid #5A3A20; background: #1A1030; touch-action: manipulation; cursor: pointer; }
+.gm-cv.shake { animation: gmShake 0.22s; }
+.gm-how { margin: 0; font-size: 0.9rem; line-height: 1.55; text-align: center; color: #F4E4C4; transition: opacity 0.4s; }
+.gm-how.dim { opacity: 0.45; }
+.gm-x { position: absolute; top: 8px; left: 8px; width: 30px; height: 30px; border-radius: 50%; border: 2px solid rgba(232, 182, 90, 0.7); background: rgba(42, 24, 16, 0.85); color: #FFE7A0; font-size: 1.1rem; line-height: 1; cursor: pointer; }
+.gm-res { position: absolute; inset: 52px 16px auto; padding: 18px 14px; border-radius: 14px; background: #FFF4DC; color: #3A2418; text-align: center; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); animation: wlRise 0.3s; }
+.gm-res[hidden] { display: none; }
+.gm-res-k { margin: 0; font-family: var(--f-title, "Aref Ruqaa", serif); font-size: 1.6rem; color: #B5473B; }
+.gm-res-p { margin: 6px 0 0; font-size: 0.95rem; }
+.gm-res-t { margin: 8px 0 12px; font-size: 1.15rem; font-weight: 700; color: #2F6A52; }
+.gm-res-acts { display: flex; flex-direction: column; gap: 8px; }
+@keyframes gmShake { 25% { transform: translate(-3px, 2px); } 50% { transform: translate(3px, -2px); } 75% { transform: translate(-2px, -1px); } }
+@media (prefers-reduced-motion: reduce) { .gm-box, .gm-cv.shake, .gm-res { animation: none; transition: none; } }
+
+/* the cinema's crank (js/hara-cinema.js): keep the film turning */
+.cin-crank { position: absolute; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 22px); z-index: 35; transform: translate(-50%, 20px); opacity: 0; transition: opacity 0.3s, transform 0.3s; display: flex; flex-direction: column; align-items: center; gap: 8px; width: min(86vw, 340px); padding: 10px 12px 12px; border-radius: 16px; background: rgba(36, 18, 26, 0.92); border: 2px solid #C8963E; color: #FFF0CF; text-align: center; }
+.cin-crank.on { opacity: 1; transform: translate(-50%, 0); }
+.cin-tip { margin: 0; font-size: 0.92rem; font-weight: 600; min-height: 1.4em; }
+.cin-gauge { position: relative; width: 100%; height: 12px; border-radius: 6px; background: linear-gradient(90deg, #6A2A2A 0 37%, #2F6A42 37% 68%, #6A4A2A 68%); overflow: hidden; }
+.cin-gauge i { position: absolute; inset: 0 auto 0 0; width: 50%; background: rgba(255, 240, 200, 0.85); border-left: 3px solid #FFFFFF; transition: width 0.1s linear; }
+.cin-gauge i.ok { background: rgba(140, 255, 170, 0.75); }
+.cin-gauge i.slow { background: rgba(255, 140, 120, 0.75); }
+.cin-gauge i.fast { background: rgba(255, 210, 120, 0.8); }
+.cin-btn { appearance: none; cursor: pointer; width: 100%; padding: 12px; border-radius: 12px; border: 2px solid #E8B65A; background: radial-gradient(circle at 50% 30%, #6A3A2A, #3A2018); color: #FFE7A0; font: 700 1.15rem "IBM Plex Sans Arabic", sans-serif; touch-action: manipulation; }
+.cin-btn.hit { animation: cinHit 0.18s; }
+@keyframes cinHit { 50% { transform: scale(0.96); } }

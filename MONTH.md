@@ -57,6 +57,20 @@ Some of these are already built into the game's calendar (`DAYS` in `js/hara-wor
 | 26 | The Eid toy and balloon stall | planned |
 | 30 | Eid swings in the square | built |
 
+### Locked places: curiosity all month
+
+Some places sit in the hara from Day 1 with their doors shut, so people keep wondering what's behind them (built, `js/hara-places.js` and one file each). Three ways in:
+
+| Opens | Place | The story behind it |
+|---|---|---|
+| Key, day 4 (again day 9) | برج الحمام, Hagg Abdo's pigeon tower | Take the key to Nemat; she climbs up for the first time since he died and gives you a pigeon that follows you all month |
+| Errand, from day 6 | بيت الأستاذ نبيل, the plain lilac house | Return his keys; inside is a pool and a beach. His letters show he's the hara's secret giver (the mercy table, the hung bread). You keep his secret |
+| Night 15 | ملاهي ليالي رمضان, the fair | Games for tickets, rides, the big wheel over the whole hara; 60 tickets buy the paper cone hat you wear all month |
+| Night 22 | سينما النصر, the cinema | الحارة زمان, Morsy's film of Ramadan 1999: the neighbours see their young selves, and the first mercy table, laid by Nabil's mother |
+| Key, day 18 (again day 24) | دكان عم شوقي, the toy shop | Mend three old toys with Shawky and take them to three kids who'd have nothing for Eid |
+
+Each player's key hides in one of a few spots on its day; the errands list gives a riddle, not a marker. Missing a key is told plainly when you next come out, with its second-chance day; missing both keeps that place shut (and on Eid the toy shop's three kids stand at its window). When the daily stories are written, a day's story can point at these (Day 4's neighbour mentions the old tower, Day 22's ends at the cinema), but none of them depends on a story.
+
 ## Things you buy that stay with you
 
 Items you buy stay yours for the rest of the month: you wear them, carry them, or see them on your house.
@@ -71,6 +85,8 @@ Items you buy stay yours for the rest of the month: you wear them, carry them, o
 | 19 | A misbaha or a prayer rug | Your spot in the mosque, and at home |
 | 22 | A tray of kahk for mama | On the iftar table, and mama's line changes |
 | 28 | Eid clothes | You wear them on Eid morning |
+| 15 | The fair's paper cone hat (won with fair tickets, built) | On your head everywhere but the mosque |
+| 4 | Your pigeon from Abdo's tower (a gift, built) | Following you round the hara, on your shoulder at night |
 
 **How you pay for them (decided).** You earn coins from the good deeds around the hara, and spend them on these things in the game. Coins are never bought with real money: real money in this game only ever goes to EFB's campaigns through the giving moments, so giving never feels like a shop.
 

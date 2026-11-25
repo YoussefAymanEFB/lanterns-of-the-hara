@@ -732,17 +732,18 @@
     return sprite(12, 12, function (P) {
       P.r(5, 5, 2, 5, "#5A5560"); P.r(3, 9, 6, 1, "#5A5560");
       P.el(1, 3, 10, 4, "#C9CDD3"); P.el(2, 3, 8, 2, "#E6E9EC");
-      // tea glasses
-      P.r(3, 1, 2, 3, "#C2552E"); P.p(3, 1, "#F2E2C8"); P.r(7, 2, 2, 2, "#C2552E"); P.p(7, 2, "#F2E2C8");
+      // tea glasses, once the cannon has gone (o.set 0: an empty table while people fast)
+      if (o.set !== 0) { P.r(3, 1, 2, 3, "#C2552E"); P.p(3, 1, "#F2E2C8"); P.r(7, 2, 2, 2, "#C2552E"); P.p(7, 2, "#F2E2C8"); }
       if (o.tawla) { P.r(2, 3, 8, 2, "#8A5435"); P.p(4, 3, "#F4EFE6"); P.p(7, 4, "#2A1A2C"); }
     }, [1, 9, 10, 3, 0.22]);
   };
 
-  PROPS.shisha = function () {
+  PROPS.shisha = function (o) {
+    o = o || {};
     return sprite(8, 18, function (P) {
       P.el(1, 11, 6, 6, "#6FB7C9"); P.el(2, 12, 3, 3, "#A6DCE8"); P.p(2, 12, "#FFFFFF");
       P.r(3, 4, 2, 8, "#C8963E"); P.r(3, 4, 1, 8, "#F2C76C");
-      P.r(2, 2, 4, 2, "#B5473B"); P.r(2, 1, 4, 1, "#7A3A30"); P.p(3, 1, "#FF8A3D"); P.p(4, 1, "#FFC24A");
+      P.r(2, 2, 4, 2, "#B5473B"); P.r(2, 1, 4, 1, "#7A3A30"); if (o.set !== 0) { P.p(3, 1, "#FF8A3D"); P.p(4, 1, "#FFC24A"); } // the coal is lit after iftar
       P.r(5, 9, 2, 1, "#3A2A26"); P.p(7, 10, "#3A2A26");
     }, [0, 15, 8, 3, 0.22]);
   };

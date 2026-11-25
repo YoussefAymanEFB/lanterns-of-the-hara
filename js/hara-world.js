@@ -106,8 +106,8 @@
   var HOUSES = [
     // ---- north of the mosque square ----
     { id: "n1", x: 0, w: 66, base: 236, fh: 86, rh: 22, wall: "stone", dado: "#A08866", door: { x: 46, c: "green" }, balcony: { x: 8, w: 32, f: 2, kind: "wood", rug: "#2F5D9A" }, vine: [{ x: 60, len: 34 }], roof: ["tank", "dish"] },
-    { id: "n2", x: 66, w: 78, base: 236, fh: 76, rh: 24, wall: "pink", dado: "#9E5E56", door: { x: 50, c: "brown", arch: true }, mash: { x: 12, f: 1 }, roof: ["coop"] },
-    { id: "n3", x: 372, w: 82, base: 236, fh: 80, rh: 22, wall: "ochre", dado: "#9E6B38", door: { x: 10, c: "teal" }, balcony: { x: 36, w: 34, f: 1 }, vine: [{ x: 74, len: 40 }], roof: ["tank", "plants"] },
+    { id: "n2", x: 66, w: 78, base: 236, fh: 76, rh: 24, wall: "pink", dado: "#9E5E56", door: { x: 50, c: "brown", arch: true }, mash: { x: 12, f: 1 }, roof: [] }, // Hagg Abdo's pigeon tower stands on this roof (js/hara-places.js)
+    { id: "n3", x: 392, w: 62, base: 236, fh: 80, rh: 22, wall: "ochre", dado: "#9E6B38", door: { x: 8, c: "teal" }, balcony: { x: 28, w: 26, f: 1 }, vine: [{ x: 56, len: 40 }], roof: ["tank", "plants"] }, // the alley to the fair runs past it
     { id: "n4", x: 454, w: 122, base: 236, fh: 92, rh: 20, wall: "stone", dado: "#A08866", door: { x: 54, c: "brown", arch: true, big: true }, mash: { x: 14, f: 1 }, mash2: { x: 90, f: 1 }, roof: ["hut", "tank"] },
     // ---- the market lane ----
     { id: "m1", x: 0, w: 54, base: 470, fh: 70, rh: 24, wall: "blue", dado: "#536F96", door: { x: 34, c: "brown" }, balcony: { x: 6, w: 28, f: 1 }, roof: ["laundry", "tank", "dish"], cables: true },
@@ -756,7 +756,7 @@
     { id: "home", name: "زقاق البيت", sub: "بيتنا وبيت الحاجة نعمات", r: [0, 560, 176, 190], bed: "home" },
     { id: "cafe", name: "قهوة الحارة", sub: "تحت الجميزة القديمة", r: [356, 340, 220, 196], bed: "cafe" },
     { id: "bakery", name: "فرن عم حسن", sub: "العيش طالع سخن", r: [196, 470, 160, 106], bed: "bakery" },
-    { id: "market", name: "سوق الحارة", sub: "فول وكشري وكباب وطرشي", subSuhoor: "خيمة عم سيد منوّرة لحد الفجر", r: [0, 400, 196, 156], bed: "market", bedSuhoor: "tentOut" },
+    { id: "market", name: "سوق الحارة", sub: "فول وكشري وكباب وبلح", subSuhoor: "خيمة عم سيد منوّرة لحد الفجر", r: [0, 400, 196, 156], bed: "market", bedSuhoor: "tentOut" },
     { id: "square", name: "ساحة الجامع", sub: "هنا الكل بيتجمع قبل المغرب", r: [0, 150, 576, 250], bed: "square" }
   ];
 
@@ -893,8 +893,11 @@
     { k: "palm", x: 368, y: 330, block: [10, 4], sway: true },
     { k: "palm", x: 514, y: 344, block: [10, 4], sway: true },
     { k: "bigLantern", x: 312, y: 292, block: [14, 5], light: [11, -26, [255, 200, 120], 50] },
-    { k: "sabil", x: 500, y: 266, block: [30, 6], look: "sabil" },
+    { k: "sabil", x: 542, y: 266, block: [30, 6], look: "sabil" }, // beside the cinema door, not in front of it
     { k: "bench", x: 420, y: 300, block: [26, 4] },
+    // Day 1: Saber's toolbox beside him on the mosque steps, open while Rizq haggles, shut once he gets up at sunset
+    { k: "toolbox", o: { open: true }, x: 311, y: 249, noblock: true, look: "saberTools", times: ["asr", "pre"], if: function (d) { return d === 1; } },
+    { k: "toolbox", o: { open: false }, x: 311, y: 249, noblock: true, look: "saberTools", times: ["maghrib"], if: function (d) { return d === 1; } },
     { k: "plantPots", o: { n: 4, seed: 3 }, x: 456, y: 246, noblock: true },
     { k: "lamp", x: 140, y: 246, block: [6, 3], light: [5, -40, [255, 214, 140], 54] },
     { k: "lamp", x: 352, y: 246, block: [6, 3], light: [5, -40, [255, 214, 140], 54] },
@@ -902,7 +905,6 @@
     { k: "shoes", x: 258, y: 244, noblock: true },
     { k: "arch", o: { w: 30, h: 58, open: 18 }, x: 192, y: 478, light: "own" },
     { k: "drinkCart", x: 424, y: 336, block: [30, 6], look: "drinks" },
-    { k: "plantPots", o: { n: 3, seed: 41 }, x: 384, y: 248, noblock: true },
     { k: "bench", x: 280, y: 344, block: [26, 4] },
     // ---- the market lane ----
     { k: "fulCart", x: 4, y: 512, block: [50, 36], id: "fulcart", hideAt: ["suhoor"], steam: [11, -38], smoke: [41, -26], light: [42, -37, [255, 214, 150], 46], sign: { dx: 25, dy: -12, t: "فول سيد", h: 5, fg: "#B5473B" } },
@@ -927,16 +929,16 @@
     { k: "bigTrunk", x: 338, y: 504, block: [16, 6], look: "tree" },
     { k: "bigCanopy", o: { w: 114, h: 76 }, x: 304, y: 474, canopy: true, sway: true },
     { k: "kiosk", x: 366, y: 534, block: [48, 6], light: "own", look: "kiosk" },
-    { k: "cafeTable", o: { tawla: true }, x: 432, y: 486, block: [10, 4] },
+    { k: "cafeTable", o: { tawla: true }, x: 432, y: 486, block: [10, 4], setBy: { maghrib: 1, night: 1 } },
     { k: "chair", o: { f: 3, c: "#3E78C2" }, x: 420, y: 486, block: [8, 3], seat: "m2", sitDir: 3 },
     { k: "chair", o: { f: 2, c: "#D8473C" }, x: 444, y: 486, block: [8, 3], seat: "m4", sitDir: 2 },
-    { k: "cafeTable", x: 490, y: 488, block: [10, 4] },
+    { k: "cafeTable", x: 490, y: 488, block: [10, 4], setBy: { maghrib: 1, night: 1 } },
     { k: "chair", o: { f: 3, c: "#F2F0EA" }, x: 478, y: 488, block: [8, 3], seat: "m3", sitDir: 3 },
     { k: "chair", o: { f: 2, c: "#3F9A62" }, x: 502, y: 488, block: [8, 3], seat: "m5", sitDir: 2 },
-    { k: "shisha", x: 462, y: 490, block: [6, 3], smoke: [4, -18] },
-    { k: "cafeTable", o: { tawla: true }, x: 540, y: 514, block: [10, 4] },
+    { k: "shisha", x: 462, y: 490, block: [6, 3], smoke: [4, -18], setBy: { maghrib: 1, night: 1 } },
+    { k: "cafeTable", o: { tawla: true }, x: 540, y: 514, block: [10, 4], setBy: { maghrib: 1, night: 1 } },
     { k: "chair", o: { f: 3, c: "#F2C14A" }, x: 528, y: 514, block: [8, 3], seat: "m1", sitDir: 3 },
-    { k: "shisha", x: 556, y: 516, block: [6, 3], smoke: [4, -18] },
+    { k: "shisha", x: 556, y: 516, block: [6, 3], smoke: [4, -18], setBy: { maghrib: 1, night: 1 } },
     { k: "plantPots", o: { n: 3, seed: 9 }, x: 560, y: 468, noblock: true },
     // ---- the kids' lot ----
     { k: "stones", x: 186, y: 652, noblock: true },
@@ -1024,16 +1026,19 @@
     { id: "nemat", name: "الحاجة نعمات", face: "nemat",
       pos: { asr: [0, 0, 0, "balcony"], pre: [0, 0, 0, "balcony"], maghrib: [0, 0, 0, "balcony"], night: [112, 674, 0, "sit"] },
       say: [
+        { when: "night", if: "nemat", t: "«الكنافة اللي {جبتها|جبتيها} طلعت عسل! تسلم إيدك يا {name}.»" },
+        { when: "night", t: "«{تعالى اقعد|تعالي اقعدي} جنبي شوية يا {name}. الحارة بالليل ليها طعم تاني.»" },
+        { when: "maghrib", t: "«تقبّل الله يا {name}!»" },
         { if: "dodged", t: "«أنا {شايفاك|شايفاكي} من فوق على فكرة!»" },
-        { when: "night", t: "«القطايف مستنياك على السلم يا {name}!»" },
+        { if: "nemat&at_steps", t: "«صابر خد الرغيفين؟ ربنا يجبر بخاطرك يا {name}.»" },
         { if: "nemat", t: "«ما {تنساش|تنسيش} الرغيفين بتوع عم صابر!»" },
         { t: "«رمضان كريم يا {name}! خلي بالك من الكورة.»" }] },
     { id: "youssef", name: "يوسف", face: "youssef",
       pos: { asr: [228, 648, 3, "play"], pre: [228, 648, 3, "play"], night: [116, 580, 0, "roof"], suhoor: null }, // at suhoor: in the tent, at the puppets
       say: [
-        { when: "night", t: "«السطوح فيه فوانيس كتير النهارده! {تعالى|تعالي}!»" },
+        { when: "night", t: "«السطوح فيه فوانيس كتير الليلة! {تعالى|تعالي}!»" },
         { if: "goal", t: "«الجون بتاعك ده هيتحكي لحد العيد!»" },
-        { t: "«{تعالى|تعالي} العب! ناقصنا واحد!»" }] },
+        { t: "«{تعالى العب|تعالي العبي}! ناقصنا واحد!»" }] },
     { id: "nourah", name: "نورة", face: "nourah",
       pos: { asr: [308, 644, 2, "play"], pre: [308, 644, 2, "play"], night: [142, 578, 0, "roof"], suhoor: null },
       say: [
@@ -1044,7 +1049,7 @@
       pos: { asr: [262, 520, 1], pre: [262, 520, 1] },
       posLater: { from: DAYS.omyoussefStall, at: [268, 556, 0], times: ["asr", "pre", "night"] },
       say: [
-        { minDay: DAYS.omyoussefStall, t: "«قطايف بالقشطة والمكسرات! أول طبق ليك هدية يا {name}.»" },
+        { minDay: DAYS.omyoussefStall, t: "«قطايف بالقشطة والمكسرات! أول طبق {ليك|ليكي} هدية يا {name}.»" },
         { if: "at_bakery", t: "«ربنا يجبر بخاطرك يا {ابني|بنتي}.»" },
         { t: "«الطابور طويل النهارده…»" }] },
     { id: "hassan", name: "عم حسن", face: "hassan",
@@ -1052,6 +1057,7 @@
       say: [
         { when: "suhoor", t: "«أول خبزة للسحور! شادي بيجري بيها على الخيمة، وأنا بخبز التانية.»" },
         { when: "night", t: "«الفرن قفل. نشوفك على السحور!»" },
+        { when: "maghrib", t: "«تقبّل الله! الفرن واقف لحد ما نفطر ونصلي.»" },
         { if: "at_bakery", t: "«سلّم لي على عم صابر لو {شفته|شفتيه}.»" },
         { t: "«العيش طالع سخن! {قرّب|قرّبي}!»" }] },
     { id: "saber", name: "عم صابر", face: "saber",
@@ -1065,34 +1071,38 @@
       pos: { asr: [64, 504, 2], pre: [232, 262, 3] },
       say: [
         { when: "pre", t: "«{إنت|إنتي} {واقف|واقفة} كده ليه؟ ما {تشوف|تشوفي} حالك!»" },
-        { t: "«روبابيكيا! أي حاجة قديمة للبيع!»" }] }
+        { t: "«روبابيكيا! بيكيا! أي حاجة قديمة نشتريها!»" }] }
   ];
   // Shopkeepers and neighbours. role: stand | sit | queue. behind: drawn behind a counter, cut at that y.
   var EXTRAS = [
     // the ful corner: Sayed ladles, his son Hamo fries ta'meya, people queue with their pots before iftar and eat at the table after it
-    { cast: "sayed", name: "عم سيد", at: [26, 500, 0], serve: "ful", talk: [33, 526], times: ["asr", "pre"], say: ["«الفول بالزيت الحار! على الفطار بالهنا.»", "«القدرة دي على النار من الفجر. الفول الحلو عايز صبر… زي الصيام.»", "«{هات|هاتي} الحلّة من البيت، وأنا أملاها لك لحد الحافة.»"] },
+    { cast: "sayed", name: "عم سيد", at: [26, 500, 0], serve: "ful", talk: [33, 526], times: ["asr", "pre"], say: ["«الفول بالزيت الحار! على الفطار بالهنا.»", "«القدرة دي على النار من الفجر. الفول الحلو عايز صبر… زي الصيام.»", "«{هات|هاتي} الحلّة من البيت، وأنا أملاهالك لآخرها.»"] },
     { cast: "sayed", name: "عم سيد", at: [26, 500, 0], serve: "ful", talk: [33, 526], times: ["maghrib"], say: ["«تقبّل الله! {اقعد|اقعدي} {افطر|افطري}، الأكل كتير.»", "«الطعمية دي على حسابي. رمضان كريم!»"] },
-    { cast: "sayed", name: "عم سيد", at: [26, 500, 0], serve: "ful", talk: [33, 526], times: ["night"], hideAt: ["suhoor"], say: ["«سحور؟ فول بالزيت الحار، وطعمية لسه طالعة، وعيش سخن من عند حسن.»", "«العربية دي ما بتقفلش غير لما الشيخ يأذّن الفجر.»"] },
+    { cast: "sayed", name: "عم سيد", at: [26, 500, 0], serve: "ful", talk: [33, 526], times: ["night"], hideAt: ["suhoor"], say: ["«سحور؟ الفول على النار، والطعمية لسه طالعة، وعيش حسن بيطلع الساعة اتنين.»", "«العربية دي ما بتقفلش غير لما الشيخ يأذّن الفجر.»"] },
     { cast: "hamo", name: "حمو", at: [43, 497, 0], serve: "tameya", talk: [54, 518], times: ["asr", "pre", "maghrib"], say: ["«طعمية سخنة! لسه طالعة من الزيت!»", "«أبويا بيقول الطعمية تتقلب مرة واحدة بس. أنا بقلبها مرتين… ما {تقولش|تقوليش} له.»"] },
     { cast: "hamo", name: "حمو", at: [43, 497, 0], serve: "tameya", talk: [54, 518], times: ["night"], hideAt: ["suhoor"], say: ["«أنا سهران مع أبويا لحد الفجر. بكرة هنام في الفصل.»", "«{عايز|عايزة} طعمية بالسمسم؟ دي سر الصنعة.»"] },
     { cast: "w6", name: "أم سامح", at: [44, 522, 1], role: "queue", times: ["pre"], say: ["«حلّة الفول بتاعتي يا عم سيد، والزيت الحار كتير الله يخليك!»"] },
-    { cast: "k6", name: "سلمى", at: [56, 528, 2], role: "queue", times: ["pre"], say: ["«ماما عايزة بخمسة فول وبعشرة طعمية… وبتقول ما تنساش الشطة!»"] },
+    { cast: "k6", name: "سلمى", at: [56, 528, 2], role: "queue", times: ["pre"], say: ["«ماما بتقولك ما تنساش الشطة يا عم سيد!»"] },
     { cast: "tayyar", name: "مصطفى الطيار", at: [46, 524, 1], times: ["maghrib"], say: ["«بفطر واقف عشان الأوردر اللي جاي. بس فول عم سيد يستاهل الوقفة.»"] },
     { cast: "taxi", name: "عم شعبان السواق", sitAt: "ful1", times: ["night"], hideAt: ["suhoor"], say: ["«فول عم سيد ده اللي مصبّرني على الوردية لحد الفجر.»"] },
     { cast: "tayyar", name: "مصطفى الطيار", sitAt: "ful2", times: ["night"], hideAt: ["suhoor"], say: ["«آخر أوردر وأروّح أتسحر… بس الريحة دي وقفتني.»"] },
-    { cast: "abuyasser", name: "أبو ياسر", at: [94, 478, 0], times: ["asr", "pre", "night"], say: ["«كشري سخن! صحن ولا اتنين؟»", "«الدقة والشطة على حسابي!»"] },
-    { cast: "kebabgi", name: "الكبابجي", at: [176, 484, 0], times: ["asr", "pre", "night"], say: ["«الفحم ولّع! بعد المغرب الطابور هيبقى للشارع.»"] },
-    { cast: "fakahani", name: "عم عوض الفكهاني", at: [80, 538, 0], times: ["asr", "pre", "night"], hideAt: ["suhoor"], say: ["«البرتقال ده عسل! {دوق|دوقي} واحدة.»", "«الجوافة ريحتها واصلة للجامع.»"] },
+    { cast: "abuyasser", name: "أبو ياسر", at: [94, 478, 0], times: ["asr", "pre", "night"], say: ["«كشري سخن! صحن ولا اتنين؟»", "«الدقة عندي بالجردل… والشطة على مسؤوليتك!»"] },
+    { cast: "kebabgi", name: "الكبابجي", at: [176, 484, 0], times: ["asr", "pre"], say: ["«الفحم بيولع عشان يبقى جاهز قبل المدفع. بعد المغرب الطابور هيبقى للشارع.»"] },
+    { cast: "kebabgi", name: "الكبابجي", at: [176, 484, 0], times: ["night"], say: ["«الطابور وصل للشارع! كفتة ولا كباب؟»"] },
+    { cast: "fakahani", name: "عم عوض الفكهاني", at: [80, 538, 0], times: ["asr", "pre", "night"], hideAt: ["suhoor"], say: ["«البرتقال ده عسل! {خد|خدي} كيلو للفطار.»", "«الجوافة دي جاية من الغيط على طول.»"] },
     { cast: "w4", name: "أم هاني", at: [130, 540, 0], times: ["asr", "pre"], say: ["«بلح وقمر الدين وزبيب. كل حاجة للخشاف.»"] },
-    { cast: "fawzy", name: "عم فوزي الفوانيسي", at: [188, 300, 2], times: ["asr", "pre", "night"], say: ["«فانوس بالشمعة ولا بالحجارة؟ الاتنين بيغنّوا!»", "«ده فانوس جدي. مش للبيع.»"] },
-    { cast: "bashir", name: "عم بشير", at: [384, 530, 0], behind: [517, 534.5], times: ["asr", "pre", "maghrib", "night"], say: ["«عندي كل حاجة: لبان، بسكوت، كارت شحن، وحكايات ببلاش.»", "«{خد|خدي} مصاصة، دي على حسابي.»"] },
-    { cast: "maalem", name: "المعلم سعيد", at: [468, 464, 0], times: ["asr", "pre", "night"], say: ["«واحد شاي على الريحة! {اقعد|اقعدي} {يا بطل|يا ست البنات}.»", "«التلفزيون ده شاف ماتشات أكتر من أي حد في الحارة.»"] },
+    { cast: "fawzy", name: "عم فوزي الفوانيسي", at: [188, 300, 2], times: ["asr", "pre", "night"], say: ["«فانوس بالشمعة ولا بالحجارة؟ اللي بالحجارة بيغني كمان!»", "«ده فانوس جدي. مش للبيع.»"] },
+    { cast: "bashir", name: "عم بشير", at: [384, 530, 0], behind: [517, 534.5], times: ["asr", "pre", "maghrib", "night"], say: ["«عندي كل حاجة: لبان، بسكوت، كارت شحن، وحكايات ببلاش.»", "«{خد|خدي} مصاصة للفطار. هدية من عم بشير.»"] },
+    { cast: "maalem", name: "المعلم سعيد", at: [468, 464, 0], times: ["asr", "pre"], say: ["«الكنكة مستنية المدفع! {اقعد|اقعدي} {يا بطل|يا ست البنات}.»", "«التلفزيون ده شاف ماتشات أكتر من أي حد في الحارة.»"] },
+    { cast: "maalem", name: "المعلم سعيد", at: [468, 464, 0], times: ["night"], say: ["«واحد شاي على الريحة! {اقعد|اقعدي} {يا بطل|يا ست البنات}.»", "«التلفزيون ده شاف ماتشات أكتر من أي حد في الحارة.»"] },
     { cast: "m2", name: "عم فتحي", sitAt: "m2", times: ["asr", "pre", "night"], say: ["«شيش بيش! الدور عليك يا عم محمود.»", "«رمضان كريم يا {ابني|بنتي}.»"] },
-    { cast: "m4", name: "عم محمود", sitAt: "m4", times: ["asr", "pre", "night"], say: ["«الدومينو ده مش لعبك يا فتحي.»"] },
-    { cast: "m3", name: "الأستاذ عادل", sitAt: "m3", times: ["pre", "night"], hideAt: ["suhoor"], say: ["«المسلسل هيبدأ! حد يعلّي الصوت.»"] },
+    { cast: "m4", name: "عم محمود", sitAt: "m4", times: ["asr", "pre", "night"], say: ["«الطاولة دي مش لعبك يا فتحي.»"] },
+    { cast: "m3", name: "الأستاذ عادل", sitAt: "m3", times: ["pre"], say: ["«المسلسل بعد الفطار… حد يحجزلي الكرسي ده.»"] },
+    { cast: "m3", name: "الأستاذ عادل", sitAt: "m3", times: ["night"], hideAt: ["suhoor"], say: ["«المسلسل بدأ! حد يعلّي الصوت.»"] },
     { cast: "m5", name: "دكتور هشام", sitAt: "m5", times: ["night"], say: ["«قهوة مظبوط وحكاية حلوة. ده علاجي.»"] },
     { cast: "m1", name: "حمادة", sitAt: "m1", times: ["night"], hideAt: ["suhoor"], say: ["«مين كسب امبارح؟ ما {تقولش|تقوليش}، أنا مسجّله!»"] },
-    { cast: "mandour", name: "عم مندور", at: [464, 336, 2], times: ["asr", "pre", "night"], hideAt: ["suhoor"], say: ["«كركديه ساقع! تمر هندي! سوبيا! {اشرب|اشربي} وادعيلي.»", "«الكوباية الأولى عليا، علشان خاطر رمضان.»"] },
+    { cast: "mandour", name: "عم مندور", at: [464, 336, 2], times: ["asr", "pre"], say: ["«كركديه ساقع! تمر هندي! سوبيا! {خد|خدي} كيس للفطار وادعيلي.»"] },
+    { cast: "mandour", name: "عم مندور", at: [464, 336, 2], times: ["night"], hideAt: ["suhoor"], say: ["«كركديه ساقع! تمر هندي! سوبيا! {اشرب|اشربي} وادعيلي.»", "«الكوباية الأولى عليا، علشان خاطر رمضان.»"] },
     { cast: "k4", name: "هنا", at: [206, 672, 3, "sit"], times: ["asr", "pre"], say: ["«أنا الحَكَم! الجون ده تسلل!»"] },
     { cast: "k1+l", name: "زياد", at: [236, 664, 3], times: ["night"], hideAt: ["suhoor"], say: ["«وحوي يا وحوي، إيوحا!»", "«{تعالى|تعالي} نلف الحارة بالفوانيس!»"] },
     { cast: "k2+l", name: "جنى", at: [262, 668, 2], times: ["night"], hideAt: ["suhoor"], say: ["«فانوسي بيغني! {اسمع|اسمعي}!»"] },
@@ -1103,8 +1113,8 @@
     // after iftar the food places have a line out the door
     { cast: "m6", name: "عم رمضان", at: [84, 506, 1], times: ["night"], hideAt: ["suhoor"], role: "queue", say: ["«الطابور ده كله على الكشري؟ يستاهل.»"] },
     { cast: "w5", name: "أم سمير", at: [98, 512, 1], times: ["night"], hideAt: ["suhoor"], role: "queue", say: ["«بعد التراويح الكشري ليه طعم تاني.»"] },
-    { cast: "k5", name: "حودة", at: [108, 506, 2], times: ["night"], hideAt: ["suhoor"], say: ["«أنا طالب طبق لوحدي النهارده!»"] },
-    { cast: "m8", name: "أشرف", at: [162, 512, 1], times: ["night"], hideAt: ["suhoor"], role: "queue", say: ["«ريحة الفحم دي جابتني من آخر الحارة.»"] },
+    { cast: "k5", name: "حودة", at: [108, 506, 2], times: ["night"], hideAt: ["suhoor"], say: ["«ماما قالت طبق واحد للكل… أنا هاخد معلقتين!»"] },
+    { cast: "m8", name: "أشرف", at: [162, 512, 1], times: ["night"], hideAt: ["suhoor"], role: "queue", say: ["«أنا حاجز الكفتة دي من العصر!»"] },
     { cast: "w6", name: "أم مازن", at: [176, 516, 2], times: ["night"], hideAt: ["suhoor"], say: ["«نص كيلو كفتة وسلطة طحينة… لا خليهم كيلو.»"] },
     { cast: "m7", name: "الحاج سليمان", at: [60, 524, 0], times: ["night"], hideAt: ["suhoor"], say: ["«الحارة بالليل في رمضان مفيش زيها.»"] },
     { cast: "k4", name: "سلمى", at: [450, 790, 0], times: ["asr", "pre"], days: { from: DAYS.gardenOpen }, say: ["«زرعت ريحان! هيطلع إمتى؟»", "«{تعالى|تعالي} {ساعدنا|ساعدينا} نسقي!»"] },
@@ -1113,14 +1123,16 @@
   ];
   // People who walk the hara on their own errands
   var WALKERS = [
-    { cast: "w1", name: "أم سعاد", say: ["«رمضان كريم!»", "«الله أكرم.»"] },
-    { cast: "w3", name: "الحاجة فاطمة", say: ["«كل سنة وانت طيب يا {حبيبي|حبيبتي}.»"] },
+    { cast: "w1", name: "أم سعاد", say: ["«رمضان كريم يا {حبيبي|حبيبتي}!»"] },
+    { cast: "w3", name: "الحاجة فاطمة", say: ["«كل سنة {وانت طيب|وانتي طيبة} يا {حبيبي|حبيبتي}.»"] },
     { cast: "m1", name: "حمادة", say: ["«{شفت|شفتي} الفوانيس اللي على الجامع؟»"] },
     { cast: "k1", name: "زياد", kid: true, say: ["«وحوي يا وحوي!»"] },
     { cast: "k2", name: "جنى", kid: true, say: ["«بابا جابلي فانوس بيغني!»"] },
     { cast: "k3", name: "عمر", kid: true, say: ["«مين يسابقني لحد الجامع؟»"] },
     { cast: "m2", name: "عم رجب", say: ["«ربنا يتقبل.»"] },
-    { cast: "w2", name: "مدام عفاف", say: ["«العيش النهارده سخن ومقمّر.»"] }
+    { cast: "w2", name: "مدام عفاف", say: ["«العيش النهارده سخن ومقمّر.»"] },
+    { cast: "m8", name: "أشرف", say: ["«رايح أجيب الكنافة من عند عم زكي قبل ما تخلص.»"] },
+    { cast: "w5", name: "أم سمير", say: ["«الحق! طابور عم حسن وصل للجامع!»"] }
   ];
   // Points where walkers turn around or stop to chat, by place
   var WAYPOINTS = [
@@ -1155,6 +1167,7 @@
 
   // What you notice when you tap something. flag: something you learn by looking.
   var LOOK = {
+    saberTools: [{ when: "maghrib", t: "صندوق عدة عم صابر، مقفول. على غطاه اسمه، محفور بخط إيده." }, { t: "صندوق عدة عم صابر: فارة، وأزاميل، ومنشار صغير. كل حتة فيهم متلمّعة ومتشالة بعناية." }],
     home: [{ when: "night", t: "ماما بتنادي من الشباك: الشاي على السطوح!" }, { t: "ماما مستنية العيش. ما {ترجعش|ترجعيش} من غيره!" }],
     roof: [{ when: "night", t: "فوق على السطوح: العيال والفوانيس." }, { t: "سلم السطوح. الفوانيس متعلقة من إمبارح." }],
     bakery: [{ when: "night", t: "الفرن قفل. لوحة العيش المعلّق لسه على الحيطة." }, { if: "at_bakery", t: "لوحة العيش المعلّق جنب الباب." }, { t: "ريحة العيش السخن واصلة لآخر الحارة." }],
@@ -1164,19 +1177,19 @@
       { when: "maghrib", t: "اللي ما لحقش يروّح، فطر عند عم سيد. على الكراسي البلاستيك، أو واقف." },
       { when: "pre", t: "طابور الحلل قدام العربية. وراديو صغير مستخبي ورا العيش بيقرا قرآن… يعني المغرب قرّب." },
       { t: "عم سيد بيقلّب قدرة الفول، وحمو ابنه بيقلب الطعمية. الريحة لوحدها امتحان للصايم." }],
-    koshari: [{ t: "كشري أبو ياسر. صوت المعالق في الصاج واصل لبرا." }],
+    koshari: [{ t: "كشري أبو ياسر. صوت الكبشة على حرف الحلة واصل لبرا." }],
     kebab: [{ when: "night", t: "ريحة الكباب مالية الحارة." }, { t: "الكبابجي لسه بيولّع الفحم." }],
-    square: [{ when: "night", t: "الترابيزات فضيت، والفوانيس منوّرة." }, { t: "المائدة بتتفرش: ترابيزات طويلة وكراسي ملونة." }],
-    steps: [{ when: "night", t: "الجامع منوّر للتراويح." }, { t: "سلم الجامع. ناس قاعدة مستنية المغرب." }],
-    mosque: [{ when: "night", t: "الجامع منوّر للتراويح." }, { t: "الجامع. لسه بدري على المغرب." }],
-    kids: [{ t: "العيال عاملين ماتش ولا كأس العالم." }],
-    cafe: [{ when: "night", t: "القهوة مليانة. الكل مستني المسلسل." }, { t: "قهوة الحارة. صوت الطاولة والشاي والراديو." }],
+    square: [{ when: "night", t: "الترابيزات فضيت، والفوانيس منوّرة." }, { when: "maghrib", t: "المائدة مليانة. الكل بيفطر سوا، والكراسي مش مكفية." }, { t: "المائدة بتتفرش: ترابيزات طويلة وكراسي ملونة." }],
+    steps: [{ when: "night", t: "الجامع منوّر للتراويح." }, { when: "maghrib", t: "الأدان خلص، والناس طالعة تصلي المغرب." }, { t: "سلم الجامع. ناس قاعدة مستنية المغرب." }],
+    mosque: [{ when: "night", t: "الجامع منوّر للتراويح." }, { when: "maghrib", t: "الجامع. صلاة المغرب." }, { t: "الجامع. لسه بدري على المغرب." }],
+    kids: [{ when: "night", t: "الملعب فاضي. العيال طلعوا السطوح بالفوانيس." }, { t: "العيال عاملين ماتش ولا كأس العالم." }],
+    cafe: [{ when: "night", t: "القهوة مليانة. الكل مستني المسلسل." }, { t: "قهوة الحارة. صوت الطاولة والراديو، والكنكة مستنية المغرب." }],
     zeer: [{ t: "زير مية قدام بيت الحاجة نعمات. أي حد عطشان يشرب." }],
-    sabil: [{ t: "سبيل الجامع. المية ساقعة حتى في الحر." }],
+    sabil: [{ t: "سبيل الجامع. المية ساقعة، والكوباية متعلقة بسلسلة." }],
     kunafa: [{ t: "صاج الكنافة. عم زكي بيلف الكوز فوقه لفّة ورا لفّة، والخيوط بتنشف في ثانية. ريحة سمنة وعجين." }],
     cooler: [{ when: "night", t: "كولدير الجامع. المية ساقعة، وجنبه كوباية معدن مربوطة بسلسلة." }, { t: "كولدير الجامع. صوت المكنة بيزنّ زي النحلة." }],
     kiosk: [{ t: "كشك عم بشير. التلاجة فيها كل الألوان." }],
-    tree: [{ t: "الجميزة دي أكبر من الحارة نفسها. الحاجة نعمات بتقول إنها كانت هنا قبل الجامع." }],
+    tree: [{ t: "الجميزة دي أقدم من الحارة نفسها. الحاجة نعمات بتقول إنها كانت هنا قبل الجامع." }],
     mural: [{ t: "جدارية رمضان. العيال رسموها السنة اللي فاتت." }],
     plants: [{ t: "زرع الحاجة نعمات. ريحان وصبّار وجيرانيوم." }],
     kitten: [{ t: "شوال الدقيق بيتحرك… لأ، دي قطة صغيرة نايمة." }],
@@ -1187,9 +1200,9 @@
   // Little secrets of the hara. Find each one once; they stay in your memories all month.
   var SECRETS = [
     { id: "carved", look: "tree", at: [352, 474], t: "على جذع الجميزة حروف محفورة من زمان: «ن + ع ١٩٧٤». مين ن ومين ع؟" },
-    { id: "kitten", look: "kitten", at: [352, 516], t: "قطة صغيرة نايمة على شوال الدقيق، دافية من الفرن. عم حسن سايبها بمزاجه." },
+    { id: "kitten", look: "kitten", at: [352, 516], t: "قطة صغيرة نايمة على شوال الدقيق، دافية من الفرن. وعم حسن سايبها تنام براحتها." },
     { id: "muralName", look: "mural", at: [236, 556], t: "تحت الهلال في الجدارية، بخط صغير: «نورة، ٨ سنين». نورة هي اللي رسمت الهلال!" },
-    { id: "sabilCup", look: "sabil", at: [515, 250], t: "على السبيل كوباية نحاس مربوطة بسلسلة. محفور عليها: «اشرب وادعي لصاحبها»." },
+    { id: "sabilCup", look: "sabil", at: [557, 250], t: "على السبيل كوباية نحاس مربوطة بسلسلة. محفور عليها: «اشرب وادعي لصاحبها»." },
     { id: "kioskRadio", look: "kiosk", at: [390, 500], t: "عم بشير مخبّي راديو قديم تحت الترابيزة. بيقول إنه بيجيب إذاعة القرآن أحسن من أي موبايل." },
     { id: "zeerNote", look: "zeer", at: [60, 672], t: "على الزير ورقة صغيرة: «المية دي صدقة على روح الحاج عبده». جوز الحاجة نعمات." },
     { id: "gateKey", look: "gate", at: [462, 716], t: "على باب الجنينة يافطة قديمة مكتوب عليها: «جنينة الحارة». يعني كانت جنينة زمان!" },
@@ -1202,7 +1215,7 @@
       did: "{سقيت|سقيتي} زرع الحاجة نعمات. الريحان شرب ولمع، وريحته طلعت في الحارة كلها." },
     // night: you're fasting until maghrib, so these wait for iftar
     { id: "sabil", t: "{اشرب|اشربي} من سبيل الجامع بعد الفطار", look: "sabil", also: ["cooler"], night: true, hold: "cup",
-      did: "{شربت|شربتي} من السبيل بعد الفطار. المية ساقعة، و{دعيت|دعيتي} لصاحبه." },
+      did: "{شربت|شربتي} مية ساقعة بعد الفطار، {ودعيت|ودعيتي} لصاحب الخير." },
     { id: "cat", t: "{دلّع|دلّعي} قطة من قطط الحارة", cat: true },
     { id: "bashir", t: "{سلّم|سلّمي} على عم بشير في الكشك", talk: "bashir" },
     { id: "tree", t: "{استريّح|استريّحي} شوية تحت الجميزة", look: "tree",

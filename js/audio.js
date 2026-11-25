@@ -4,7 +4,7 @@
   Three layers, all quiet on purpose:
     1. Ambience per place: a bed (air, room tone, crowd murmur, oven roar, grill crackle...) plus
        small random events (cutlery, coins, a ball bouncing down the alley, pigeons' wings).
-    2. Story effects, fired by `fx` in the episode: stairs, the basket knocking on the window, the ball,
+    2. Story effects, fired by `fx` in the episode: stairs, Nemat's basket coming down on its rope, the ball,
        coins on the counter, juice poured, the workshop door, the carpenter's plane, the iftar cannon.
     3. Music only at three moments (title, right after the cannon, the end screen): a short composed
        theme in maqam Bayati on a qanun-like plucked string. Nothing loops.
@@ -115,13 +115,13 @@
     street: function () { if (samples.bakery) playSample("bakery", { gain: 0.45, rate: 0.9, lowpass: 1800 }); },
     basket: function () {
       var t = now() + 0.05;
-      // rope creak, then three light knocks on the window glass
+      // the rope creaking over the balcony rail, then the wicker basket bumping softly on the open window's sill
       var o = ctx.createOscillator(), f = ctx.createBiquadFilter(), g = ctx.createGain();
       o.type = "sawtooth"; o.frequency.setValueAtTime(150, t); o.frequency.linearRampToValueAtTime(190, t + 0.35); o.frequency.linearRampToValueAtTime(165, t + 0.6);
       f.type = "bandpass"; f.frequency.value = 1100; f.Q.value = 7;
       env(g, t, 0.05, 0.12, 0.5);
       o.connect(f); f.connect(g); g.connect(sfxBus); o.start(t); o.stop(t + 0.7);
-      [0.75, 0.97, 1.19].forEach(function (d) { metal({ t: t + d, base: 1250, ratios: [1, 1.52, 2.7], gain: 0.12, decay: 0.09 }); burst({ t: t + d, freq: 900, q: 2, gain: 0.06, decay: 0.04 }); });
+      [0.8, 1.05].forEach(function (d, i) { thump({ t: t + d, from: 210, to: 120, gain: 0.12 / (i + 1), decay: 0.06 }); burst({ t: t + d, freq: 2400, q: 0.9, gain: 0.07 / (i + 1), decay: 0.05 }); });
     },
     ball: function () {
       var t = now() + 0.02;
@@ -264,6 +264,45 @@
       var t = now() + 0.02, g = v == null ? 1 : v, beat = 0.555;
       for (var b = 0; b < 4; b++) for (var p = 0; p < 5; p++) burst({ t: t + b * beat + rnd(0, 0.03), freq: rnd(1400, 2600), q: 1.1, gain: 0.03 * g, decay: 0.05, dest: dest });
     },
+    // a pigeon: croo-croo, low and round
+    coo: function (dest, v) {
+      var t = now() + 0.02, g0 = v == null ? 1 : v;
+      [[0, 1], [0.42, 0.8]].forEach(function (h) {
+        var o = ctx.createOscillator(), trem = ctx.createOscillator(), tg = ctx.createGain(), f = ctx.createBiquadFilter(), g = ctx.createGain(), s = t + h[0];
+        o.type = "triangle"; o.frequency.setValueAtTime(rnd(300, 340), s); o.frequency.linearRampToValueAtTime(rnd(380, 420), s + 0.12); o.frequency.linearRampToValueAtTime(rnd(270, 300), s + 0.34);
+        trem.frequency.value = 22; tg.gain.value = 0.5; trem.connect(tg); tg.connect(g.gain);
+        f.type = "lowpass"; f.frequency.value = 900;
+        env(g, s, 0.05 * g0 * h[1], 0.05, 0.3);
+        o.connect(f); f.connect(g); g.connect(dest || sfxBus); o.start(s); o.stop(s + 0.4); trem.start(s); trem.stop(s + 0.4);
+      });
+    },
+    // a balloon popping
+    pop: function (dest, v) { burst({ freq: 2400, q: 0.6, type: "highpass", gain: 0.16 * (v || 1), decay: 0.06, dest: dest }); thump({ from: 260, to: 120, gain: 0.08 * (v || 1), decay: 0.05, dest: dest }); },
+    // the strongman's bell, the prize bell
+    ding: function (dest, v) { metal({ base: rnd(1180, 1260), ratios: [1, 2.01, 2.74, 3.76], gain: 0.12 * (v || 1), decay: 1.6, dest: dest }); },
+    splash: function (dest, v) { burst({ freq: 1600, sweep: 400, q: 0.5, type: "lowpass", gain: 0.12 * (v || 1), attack: 0.01, decay: 0.45, dest: dest }); burst({ t: now() + 0.12, freq: 3000, q: 1, gain: 0.04 * (v || 1), decay: 0.2, dest: dest }); },
+    whoosh: function (dest, v) { burst({ freq: 700, sweep: 2600, q: 0.8, gain: 0.06 * (v || 1), attack: 0.08, decay: 0.2, dest: dest }); },
+    whistle: function (dest, v) {
+      var t = now() + 0.02, o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = "sine"; o.frequency.setValueAtTime(1500, t); o.frequency.exponentialRampToValueAtTime(2300, t + 0.18); o.frequency.setValueAtTime(1700, t + 0.3); o.frequency.exponentialRampToValueAtTime(2500, t + 0.5);
+      env(g, t, 0.05 * (v || 1), 0.02, 0.55);
+      o.connect(g); g.connect(dest || sfxBus); o.start(t); o.stop(t + 0.65);
+    },
+    // a crowd going "ooooh!" then clapping
+    cheer: function (dest, v) {
+      burst({ freq: 900, q: 0.6, gain: 0.07 * (v || 1), attack: 0.25, decay: 0.9, dest: dest });
+      var t = now() + 0.5; for (var p = 0; p < 18; p++) burst({ t: t + rnd(0, 1.2), freq: rnd(1400, 2600), q: 1.1, gain: 0.025 * (v || 1), decay: 0.05, dest: dest });
+    },
+    // a wave up the sand and back (the beach in Nabil's house)
+    wave: function (dest, v) { burst({ freq: 500, sweep: 1400, q: 0.4, type: "lowpass", gain: 0.06 * (v || 1), attack: 0.9, decay: 1.6, brown: true, dest: dest }); burst({ t: now() + 1, freq: 3200, q: 0.5, gain: 0.012 * (v || 1), attack: 0.4, decay: 1.2, dest: dest }); },
+    // the projector's clatter, the clock's tick
+    crank: function (dest, v) { for (var i = 0; i < 6; i++) burst({ t: now() + i * 0.045, freq: 2600, q: 3, gain: 0.02 * (v || 1), decay: 0.015, dest: dest }); },
+    tick: function (dest, v) { thump({ from: 2200, to: 1800, gain: 0.02 * (v || 1), decay: 0.02, wave: "triangle", dest: dest }); },
+    // a few notes from a music box (our own little tune)
+    musicbox: function (dest, v) {
+      var t = now() + 0.02, tune = [1046.5, 1318.5, 1568, 1318.5, 1174.7, 1046.5, 987.8, 1046.5];
+      tune.forEach(function (f, i) { metal({ t: t + i * 0.28, base: f, ratios: [1, 4.1], gain: 0.03 * (v || 1), decay: 0.6, dest: dest }); });
+    },
     hush: function () { A.hush(); },
     cannon: function () { A.cannon(); }
   };
@@ -300,7 +339,14 @@
     kebabIn: { air: [480, 0.04], murmur: 0.28, sizzle: 0.06, byTime: { asr: 0.1, pre: 0.4, maghrib: 1, night: 1 }, kids: [12, 22, 0.18], ev: [["clink", 2.5, 6, 0.45]] },
     // the suhoor tent: the band (tabla, riq and a mizmar), the crowd clapping along; outside you hear it through the cloth
     tentIn: { air: [420, 0.04], murmur: 0.34, simmer: 0.015, band: { gain: 1, lp: 3400 }, ev: [["clap", 7, 14, 0.8], ["clink", 2, 5, 0.45], ["glass", 4, 9, 0.4]], kids: [14, 26, 0.16] },
-    tentOut: { air: [600, 0.05], murmur: 0.24, band: { gain: 0.5, lp: 900 }, ev: [["clink", 4, 9, 0.3]], kids: [16, 28, 0.12] }
+    tentOut: { air: [600, 0.05], murmur: 0.24, band: { gain: 0.5, lp: 900 }, ev: [["clink", 4, 9, 0.3]], kids: [16, 28, 0.12] },
+    // the new places: the pigeon roof, Nabil's house (the sea inside, the air conditioning), the fair, the cinema, the toy shop
+    loft: { air: [900, 0.05], ev: [["coo", 2.5, 7, 0.8], ["flutter", 6, 14, 0.6], ["chirp", 5, 12, 0.3]] },
+    villa: { air: [380, 0.03], hum: 0.005, ev: [["wave", 4.5, 8, 1], ["glass", 9, 18, 0.25]] },
+    fairIn: { air: [700, 0.05], murmur: 0.36, organ: { gain: 1, lp: 3600 }, kids: [5, 11, 0.3], ev: [["pop", 5, 12, 0.5], ["ding", 8, 16, 0.4], ["cheer", 14, 26, 0.5], ["whistle", 18, 32, 0.25]] },
+    fairOut: { air: [600, 0.05], murmur: 0.16, organ: { gain: 0.45, lp: 900 }, kids: [12, 22, 0.15] },
+    cinemaIn: { air: [260, 0.03], hum: 0.008, murmur: 0.1, ev: [["crank", 0.9, 1.4, 0.5], ["rustle", 6, 12, 0.4]] },
+    toyshop: { air: [240, 0.03], ev: [["tick", 1, 1.02, 0.6], ["musicbox", 14, 24, 0.7], ["creak", 12, 22, 0.4]] }
   };
 
   function loopNoise(kind, filterType, freq, level, dest) {
@@ -357,7 +403,49 @@
     });
     if (c.kids) every(c.kids[0], c.kids[1], function () { playSample("kids", { gain: c.kids[2], lowpass: 3200, rate: rnd(0.94, 1.04), dest: b.out }); });
     if (c.band) band(b, c.band);
+    if (c.organ) organ(b, c.organ);
     return b;
+  }
+  /* The fair's band: a bright street organ playing a tune of our own in maqam ajam (a major scale) over a quick
+     maqsum on the tabla, the way the swings and the shooting stalls blare it at a Ramadan fair. */
+  var AJ = { C4: 261.63, D4: 293.66, E4: 329.63, F4: 349.23, G4: 392, A4: 440, B4: 493.88, C5: 523.25, D5: 587.33, E5: 659.25 };
+  var FAIR_TUNE = [
+    [["E5", 1], ["D5", 1], ["C5", 1], ["G4", 1], ["A4", 1], ["C5", 1], ["G4", 2]],
+    [["F4", 1], ["A4", 1], ["C5", 1], ["A4", 1], ["G4", 2], ["E4", 2]],
+    [["C5", 1], ["C5", 1], ["D5", 1], ["E5", 1], ["D5", 1], ["C5", 1], ["A4", 2]],
+    [["G4", 1], ["A4", 1], ["G4", 1], ["F4", 1], ["E4", 1], ["D4", 1], ["C4", 2]]
+  ];
+  function organ(b, o) {
+    var out = ctx.createGain(), lp = ctx.createBiquadFilter();
+    lp.type = "lowpass"; lp.frequency.value = o.lp || 3000; out.gain.value = o.gain || 1;
+    out.connect(lp); lp.connect(b.out);
+    var E = 0.22, bar = 0, next = now() + 0.3;
+    function pipe(f, t, len, v) {
+      [1, 2].forEach(function (m, i) {
+        var os = ctx.createOscillator(), g = ctx.createGain();
+        os.type = i ? "square" : "triangle"; os.frequency.value = f * m;
+        g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v / (i ? 5 : 1), t + 0.02);
+        g.gain.setValueAtTime(v / (i ? 5 : 1), t + len - 0.04); g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+        os.connect(g); g.connect(out); os.start(t); os.stop(t + len + 0.03);
+      });
+    }
+    function schedule() {
+      if (b.dead) return;
+      while (next < now() + 1.2) {
+        var t0 = next;
+        [[0, "D"], [1, "T"], [3, "T"], [4, "D"], [6, "T"]].forEach(function (h) {
+          var t = t0 + h[0] * E;
+          if (h[1] === "D") thump({ t: t, from: 120, to: 60, gain: 0.2, decay: 0.25, dest: out });
+          else burst({ t: t, freq: 2600, q: 1.3, gain: 0.08, decay: 0.06, dest: out });
+        });
+        for (var k = 0; k < 4; k++) pipe(AJ[["C4", "G4", "A4", "F4"][bar % 4]] / 2, t0 + k * 2 * E, E * 1.6, 0.03); // oom-pah underneath
+        var line = FAIR_TUNE[bar % FAIR_TUNE.length], pos = 0;
+        line.forEach(function (n) { pipe(AJ[n[0]], t0 + pos * E, n[1] * E - 0.02, 0.04); pos += n[1]; });
+        next += 8 * E; bar++;
+      }
+      b.timers.push(setTimeout(schedule, 400));
+    }
+    schedule();
   }
   /* The tent's band: maqsum on the tabla (dum tak . tak dum . tak .), the riq's jingles on every eighth,
      and a mizmar playing a short tune of our own in maqam hijaz, round and round. Scheduled a bar ahead. */

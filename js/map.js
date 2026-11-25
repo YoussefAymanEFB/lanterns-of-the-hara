@@ -218,6 +218,7 @@
   /* ---------------- building the scene once ---------------- */
   function build() {
     HARA = WD.build(); HARA.id = "hara"; G = HARA; W = G.W; HG = G.HGT;
+    if (WD.onBuilt) WD.onBuilt(HARA); // the new places paint their bits of ground (the fair's alley)
     root = el("div", "map");
     view = el("div", "mp-view", root);
     cvs = el("canvas", "mp-cv", view); ctx = cvs.getContext("2d", { alpha: false });
@@ -306,6 +307,7 @@
     itemImg.candy = A.sprite(15, 16, function (P) { P.r(7, 9, 1, 7, "#C9A46A"); [[2, 1], [8, 0], [4, 5], [10, 5], [6, 2]].forEach(function (c, i) { P.el(c[0], c[1], 6, 6, i % 2 ? "#F7A8C8" : "#F48AB8"); P.p(c[0] + 2, c[1] + 1, "#FFE0EE"); }); });
     itemImg.breadBoard = A.sprite(18, 7, function (P) { P.r(0, 4, 18, 2, "#9C6542"); P.r(0, 4, 18, 1, "#BA8155"); [1, 6, 11].forEach(function (x, i) { P.el(x, 1 + (i % 2), 6, 3, "#D9A25E"); P.p(x + 2, 1 + (i % 2), "#EFC88A"); }); });
     itemImg.cup = A.sprite(9, 10, function (P) { P.r(1, 2, 7, 7, "#C8963E"); P.r(1, 2, 7, 1, "#F2C76C"); P.r(6, 3, 2, 6, "#8A6224"); P.r(2, 1, 5, 1, "#9AD0F0"); P.p(3, 4, "#FFE08A"); });
+    Object.keys(WD.ITEMS || {}).forEach(function (k) { itemImg[k] = WD.ITEMS[k]; }); // toys and the like from the new places
     starImg = A.sprite(11, 11, function (P) { P.r(5, 0, 1, 11, "#FFD25A"); P.r(0, 5, 11, 1, "#FFD25A"); P.r(4, 2, 3, 7, "#FFE08A"); P.r(2, 4, 7, 3, "#FFE08A"); P.r(4, 4, 3, 3, "#FFF6D0"); P.p(5, 5, "#FFFFFF"); });
     zImg = (function () { var c = A.cv(4, 4); A.Pt(c).map(0, 0, ["zzzz", "..z.", ".z..", "zzzz"], { z: "#F4F0FF" }); return c; })();
     noteImg = (function () { var c = A.cv(4, 6); A.Pt(c).map(0, 0, [".nnn", ".n.n", ".n.n", "nn.n", "nnnn", "nn.."], { n: "#FFE7A0" }); return c; })();
@@ -323,8 +325,8 @@
   }
   var builtFor = "";
   function rebuild() {
-    builtFor = time === "suhoor" ? "suhoor" : "";
-    props = G.props.filter(function (p) { return WD.inDays(p.days, day) && timeOk(p); });
+    builtFor = time;
+    props = G.props.filter(function (p) { return WD.inDays(p.days, day) && timeOk(p) && (!p.if || p.if(day, time)); });
     canopies = props.filter(function (p) { return p.canopy; });
     emitters = []; coopBirds = [];
     makeGrid();
@@ -358,6 +360,7 @@
     sg.fillStyle = "#FFFFFF"; sg.fillRect(0, 0, W, GROUND_TOP);
     sg.globalCompositeOperation = "destination-out";
     G.houses.concat([G.mosque, G.minaret]).forEach(function (b) { if (b.y < GROUND_TOP) sg.drawImage(b.canvas, b.x, b.y); });
+    props.forEach(function (p) { if (p.skyCut) { var sp = propSprite(p); sg.drawImage(sp, p.x, propTop(p, sp)); } }); // things on the roofs (the pigeon tower)
   }
 
   function makeStatics() {
@@ -374,7 +377,7 @@
       var sp = propSprite(p), top = propTop(p, sp);
       statics.push({ y: p.y, x0: p.x - 4, x1: p.x + sp.width + 4, y0: top, y1: p.y + 4, draw: function () { drawProp(p); } });
       if (p.steam) emitters.push({ k: "steam", x: p.x + p.steam[0], y: p.y + p.steam[1], every: 0.22, t: 0 });
-      if (p.smoke) emitters.push({ k: p.k === "shisha" ? "puff" : "smoke", x: p.x + p.smoke[0], y: p.y + p.smoke[1], every: p.k === "shisha" ? 2.4 : 0.3, t: rnd(0, 1) });
+      if (p.smoke && !(p.k === "shisha" && fasting())) emitters.push({ k: p.k === "shisha" ? "puff" : "smoke", x: p.x + p.smoke[0], y: p.y + p.smoke[1], every: p.k === "shisha" ? 2.4 : 0.3, t: rnd(0, 1) });
       if (p.k === "grill") emitters.push({ k: "spark", x: p.x + 12, y: p.y - 13, every: 0.18, t: 0 });
       if (p.k === "sabil") emitters.push({ k: "drip", x: p.x + 15, y: p.y - 13, every: 0.5, t: 0 });
     });
@@ -441,6 +444,7 @@
       add(G.minaret.top.x, G.minaret.top.y, 24, [255, 240, 200], "on", { g: 0.8 });
     }
     (G.lights || []).forEach(function (L) { if (timeOk(L)) add(L.x, L.y, L.r, L.c, L.when, { fl: L.fl || 0, g: L.g == null ? 0.5 : L.g, need: L.need || null, dyn: L.dyn || null }); });
+    if (!RM) (WD.LIGHTS || []).forEach(function (L) { if (timeOk(L) && (!L.if || L.if(day, time))) add(L.x, L.y, L.r, L.c, L.when || "on", { fl: L.fl || 0, g: L.g == null ? 0.6 : L.g, dyn: L.dyn || null }); });
     props.forEach(function (p) {
       // more lights on one thing: [dx, dy, rgb, radius, { fl, g, dyn }] from its base (the suhoor tent)
       (p.lights || []).forEach(function (L) { add(p.x + L[0], p.y + L[1], L[3], L[2], "on", Object.assign({ g: 0.8 }, L[4] || {})); });
@@ -492,10 +496,13 @@
   }
   function populate() {
     actors = [player];
+    player.hidden = false;
+    placeBuddy();
     if (RM) { populateRoom(); return; }
     var tm = time, nematH = houseBy("nemat"), homeH = houseBy("home");
     WD.PEOPLE.forEach(function (p) {
       // at suhoor people stay where they were at night, unless their pos says suhoor (null: not out in the hara)
+      if (p.awayIf && p.awayIf(day, tm)) return; // somewhere else tonight (at the cinema)
       var away = tm === "suhoor" && p.pos.hasOwnProperty("suhoor");
       var pos = away ? p.pos.suhoor : p.pos[tm] || (tm === "suhoor" ? p.pos.night : null), sid = p.id, face = p.face, later = p.posLater;
       if (later && !away && day >= later.from && later.times.some(isNow)) { pos = later.at; if (later.cast) sid = later.cast; if (later.face) face = later.face; }
@@ -515,7 +522,7 @@
       actors.push(a);
     });
     WD.EXTRAS.forEach(function (x) {
-      if (!timeOk(x) || !WD.inDays(x.days, day)) return;
+      if (!timeOk(x) || !WD.inDays(x.days, day) || (x.if && !x.if(day, time))) return;
       var a;
       if (x.sitAt) {
         var ch = props.filter(function (p) { return p.seat === x.sitAt; })[0];
@@ -528,8 +535,11 @@
       if (x.dance) a.dance = rnd(0, 1);
       if (x.sparkle) a.sparkle = true;
       if (x.loop) { a.route = { pts: x.loop, i: 0, wait: rnd(0.5, 2), pause: x.pause || [1.5, 3.5] }; a.speed = SPEED * (x.speed || 0.45); }
-      if (x.hold) a.item = { k: x.hold, t: 9 };
-      a.kind = "extra"; a.name = x.name; a.lines = x.say; a.homeDir = a.dir; a.queue = x.role === "queue"; a.cast = x.cast;
+      if (x.hold) { var hk = typeof x.hold === "function" ? x.hold(day, time) : x.hold; if (hk) { a.item = { k: hk, t: 9 }; a.keepItem = true; } }
+      if (x.id) a.cid = x.id;
+      if (x.face) a.face = x.face;
+      a.kind = "extra"; a.name = x.name; a.lines = typeof x.say === "function" ? x.say(day, time) : x.say; a.homeDir = a.dir; a.queue = x.role === "queue"; a.cast = x.cast.replace(/\+l$/, "");
+      if (x.talkFn) a.talkFn = x.talkFn;
       actors.push(a);
     });
     // at suhoor the musaharati walks the whole hara with his drum, calling people by name, two kids behind him
@@ -552,7 +562,7 @@
         var t = props.filter(function (p) { return p.id === id; })[0];
         if (!t) return;
         for (var i = 0; i < 5; i++) {
-          if (ti === 0 && i === 2) continue; // Saber's seat
+          if (ti === 0 && (i === 2 || (day === 1 && i === 3))) continue; // Saber's seat, and on Day 1 the one beside it, kept for you
           var dx = t.x + 10 + i * 17, a = actor(diners[ti * 5 + i], dx, t.y - 8, 0);
           a.sit = true; a.kind = "extra"; a.name = "الجيران"; a.lines = ["«{اتفضل|اتفضلي} معانا!»", "«تقبّل الله!»"]; a.homeDir = 0; a.talkAt = [dx, t.y + 6];
           actors.push(a);
@@ -560,7 +570,11 @@
       });
     }
     var n = { asr: 4, pre: 9, maghrib: 1, night: 11, suhoor: 12 }[tm] || 4;
-    var pool = WD.WALKERS.slice().sort(function () { return Math.random() - 0.5; });
+    // nobody walks around while they're also standing, sitting or flying a kite somewhere on screen
+    var here = {};
+    actors.forEach(function (a) { if (a.sid) here[a.sid.replace(/\+l$/, "")] = 1; if (a.name) here[a.name] = 1; });
+    if (tm === "asr" || tm === "pre") (G.kites || []).forEach(function (k, i) { here[k.cast] = 1; here[["عمر", "جنى"][i] || ""] = 1; });
+    var pool = WD.WALKERS.filter(function (w) { return !here[w.cast] && !here[w.name]; }).sort(function () { return Math.random() - 0.5; });
     for (var w = 0; w < n && w < pool.length; w++) {
       var wp = WD.WAYPOINTS[(Math.random() * WD.WAYPOINTS.length) | 0];
       var a2 = actor(pool[w].cast, wp[0] + rnd(-6, 6), wp[1], (Math.random() * 4) | 0);
@@ -615,6 +629,8 @@
       if (e.hold) a.item = { k: e.hold, t: 9 };
       if (e.sortY) a.sortY = e.sortY;
       if (e.react) a.react = e.react;
+      if (e.talkFn) a.talkFn = e.talkFn;
+      if (e.hidden) a.hidden = true;
       actors.push(a);
     });
     cats = (RM.cats || []).map(function (c) { return { coat: c.coat, x: c.at[0], y: c.at[1], z: c.z || 0, mode: c.mode, area: c.area, dir: 0, t: rnd(1, 5), walk: null, zt: rnd(0, 2) }; });
@@ -738,6 +754,7 @@
       }
     }
     if (dest && dest.exit) { useExit(dest.exit); return; }
+    if (dest && dest.pickup) { pickUp(dest.pickup); return; }
     if (dest && dest.person) startTalk(dest.person);
     else if (dest && dest.cat) pet(dest.cat);
     else if (dest && dest.look) look(dest.look);
@@ -756,7 +773,11 @@
     look(id);
   }
   function tryDoor(d) {
-    if (d.open && !d.open(day, flags())) { openTalk({ name: WD.SPOTS[d.spot].name, text: fmt(d.shut), portrait: null }); sfx("knock"); return; }
+    if (d.open && !d.open(day, flags(), time)) {
+      if (d.onShut && d.onShut(day, time) === true) return; // a locked place can answer for itself (a countdown, a key)
+      openTalk({ name: WD.SPOTS[d.spot].name, text: fmt(typeof d.shut === "function" ? d.shut(day, time) : d.shut), portrait: null }); sfx("knock"); return;
+    }
+    if (d.onTry && d.onTry(day, time) === true) return; // the first time in, a scene at the door
     goLoc(d.room, null, { from: "hara" });
   }
   function useExit(ex) {
@@ -841,6 +862,19 @@
       if (wx > a.x - 9 && wx < a.x + 9 && wy > top - 4 && wy < bot + 4 && (!best || a.y > best.y)) best = a;
     });
     if (best) { autoGo = false; hl = { r: [best.x - 9, best.y - (best.sp.kid ? 24 : 30), 18, best.sp.kid ? 26 : 32], t: T }; approach(best); return; }
+    if (buddy && buddy.drawn && hyp(wx, wy, buddy.drawn[0], buddy.drawn[1]) < 8) { petBuddy(); return; }
+    var pk = livePickups();
+    for (var pi = 0; pi < pk.length; pi++) {
+      var q = pk[pi];
+      if (hyp(wx, wy, q.x, q.y - 3) < 10) {
+        autoGo = false; hl = { r: [q.x - 5, q.y - 8, 10, 9], t: T };
+        if (H.audio) H.audio.tap();
+        var st = { x: q.x + (player.x < q.x ? -8 : 8), y: q.y + 3 }; snap(st);
+        if (hyp(player.x, player.y, st.x, st.y) < 5) { player.dest = { pickup: q }; arrived(); return; }
+        walkTo(st.x, st.y, { pickup: q });
+        return;
+      }
+    }
     for (var i = 0; i < cats.length; i++) { var c = cats[i]; if (wx > c.x - 9 && wx < c.x + 9 && wy > c.y - 11 - c.z && wy < c.y + 4) { var to = { x: c.x + (player.x < c.x ? -12 : 12), y: c.y + 3 }; snap(to); walkTo(to.x, to.y, { cat: c }); return; } }
     if (OB) for (var gi = 0; gi < OB.goals.length; gi++) { var m = markOf(OB.goals[gi]); if (m && hyp(wx, wy, m.mark[0], m.mark[1] - 8) < 14) { goTarget(OB.goals[gi]); return; } }
     autoGo = false;
@@ -883,6 +917,8 @@
 
   /* ---------------- talking, looking, secrets, small deeds ---------------- */
   function startTalk(a) {
+    if (a.talkFn) { faceEach(a); a.talkFn(a); return; } // someone with more to say than a line (a booth keeper, Nabil)
+    if (WD.TALK && WD.TALK(a) === true) { faceEach(a); return; } // someone who has something for you today (a key, a question)
     var line;
     if (a.person) { var l = pickLine(a.person.say); line = l && l.t; }
     else if (a.lines) line = a.lines[(Math.random() * a.lines.length) | 0];
@@ -901,11 +937,12 @@
     else { a.dir = dy < 0 ? 1 : 0; player.dir = dy < 0 ? 0 : 1; }
   }
   function look(id) {
+    if (WD.ACTS && WD.ACTS[id] && WD.ACTS[id](day, time) !== false) return; // something you can do there (a game, a ride, a letter)
     var thirsty = (id === "sabil" || id === "zeer" || id === "cooler") && fasting();
     var did = deedCheck({ look: id });
     if (did && did.did) { openTalk({ name: WD.SPOTS[id] ? WD.SPOTS[id].name : null, text: fmt(did.did) }); return; }
     if (thirsty && todaysDeeds().some(function (x) { return !x.done && x.d.night && (x.d.look === id || (x.d.also && x.d.also.indexOf(id) >= 0)); })) {
-      openTalk({ name: WD.SPOTS[id] ? WD.SPOTS[id].name : null, text: fmt("المية ساقعة ومغرية… بس {إنت|إنتي} صايم! {استنى|استني} لحد المغرب، والسبيل مش هيطير.") });
+      openTalk({ name: WD.SPOTS[id] ? WD.SPOTS[id].name : null, text: fmt("المية ساقعة ومغرية… بس {إنت صايم|إنتي صايمة}! {استنى|استني} لحد المدفع.") });
       player.emote = { k: "sweat", t: 0 };
       return;
     }
@@ -1093,6 +1130,106 @@
     deedCheck({ cat: true });
   }
 
+  /* ---------------- things to pick up: a key in the dust, a letter on a desk ---------------- */
+  // WD.PICKUPS (the hara) or RM.pickups (a room): { id, x, y, img, ok(day, time), pick(day, time) }
+  function livePickups() {
+    var list = (RM ? RM.pickups : WD.PICKUPS) || [];
+    return list.filter(function (p) { return !p.ok || p.ok(day, time); });
+  }
+  function pickUp(p) {
+    if (p.ok && !p.ok(day, time)) return;
+    player.dir = player.x < p.x ? 3 : 2;
+    player.kick = 0.3;
+    burst("twinkle", p.x, p.y - 4, 10);
+    sfx("chime");
+    p.pick(day, time);
+    refreshQuests();
+  }
+
+  /* ---------------- your pigeon: it flies after you, lands by your feet, sits on your shoulder ---------------- */
+  var buddy = null;
+  function buddyTint() { return WD.PET ? WD.PET() : null; }
+  function shoulderOf() {
+    var side = player.dir === 2 ? 2 : player.dir === 3 ? -2 : player.dir === 1 ? -5 : 5;
+    return { x: player.x + side, y: player.y, z: (player.sp && player.sp.kid ? 12 : 16) + (player.sit ? -3 : 0) + (player.jz || 0) };
+  }
+  function placeBuddy() {
+    var tint = buddyTint();
+    if (!tint) { buddy = null; return; }
+    if (!pigeonSprCache[tint]) pigeonSprCache[tint] = A.pigeon(tint);
+    var s = shoulderOf();
+    if (!buddy || buddy.tint !== tint) buddy = { tint: tint, dir: 0, f: 0, t: 2, st: "shoulder" };
+    buddy.x = s.x; buddy.y = s.y; buddy.z = s.z; buddy.st = "shoulder"; buddy.t = rnd(3, 6);
+  }
+  function petBuddy() {
+    burst("heart", buddy.x, buddy.y - buddy.z - 6, 3);
+    var au = audio(); if (au && au.fxv) au.fxv("coo", 1);
+    if (buddy.st !== "shoulder" && !RM && !dark()) { buddy.st = "fly"; buddy.goal = "shoulder"; buddy.t = rnd(4, 7); }
+  }
+  function thinkBuddy(dt) {
+    if (!buddy) return;
+    var b = buddy, s = shoulderOf(), hold = RM || dark() || cutOn || player.sit || player.hidden || (O && O.title);
+    b.t -= dt;
+    if (player.hidden) { b.x = player.x; b.y = player.y; b.z = s.z; b.st = "shoulder"; return; }
+    if (b.st === "shoulder") {
+      b.x = s.x; b.y = s.y; b.z = s.z; b.dir = player.dir === 2 ? 0 : player.dir === 3 ? 1 : b.dir; b.f = ((T * 0.7) | 0) % 5 === 0 ? 1 : 0;
+      if (dark() && Math.random() < dt * 0.3) parts.push({ k: "z", x: b.x + 2, y: b.y - b.z - 5, vx: 2, vy: -5, life: 0, max: 1.6 });
+      if (!hold && b.t <= 0 && !player.moving) { // hop down and peck about
+        b.st = "fly"; b.goal = [player.x + rnd(-16, 16), player.y + rnd(3, 10)]; b.t = rnd(8, 14);
+        var g0 = { x: b.goal[0], y: b.goal[1] }; snap(g0); b.goal = [g0.x, g0.y];
+      }
+      if (!hold && player.moving && b.t <= -2) { b.st = "fly"; b.goal = "follow"; }
+      return;
+    }
+    if (hold) { b.st = "fly"; b.goal = "shoulder"; }
+    var tx, ty, tz;
+    if (b.st === "fly") {
+      if (b.goal === "shoulder") { tx = s.x; ty = s.y; tz = s.z; }
+      else if (b.goal === "follow") { tx = player.x + (player.dir === 3 ? -14 : player.dir === 2 ? 14 : 8); ty = player.y + (player.dir === 0 ? -6 : 4); tz = 22 + Math.sin(T * 2.3) * 3; }
+      else { tx = b.goal[0]; ty = b.goal[1]; tz = 0; }
+      var dx = tx - b.x, dy = ty - b.y, dz = tz - b.z, d = Math.hypot(dx, dy), sp = d > 70 ? 120 : 64;
+      if (d > 0.5) { var k = Math.min(1, sp * dt / d); b.x += dx * k; b.y += dy * k; b.dir = dx < 0 ? 0 : 1; }
+      b.z += dz * Math.min(1, dt * 4);
+      b.f = ((T * 10) | 0) % 2 ? 2 : 3;
+      if (T - lastFlap > 0.9 && d > 20 && near(b.x, b.y, 10)) { lastFlap = T; var au2 = audio(); if (au2 && au2.fxv) au2.fxv("flutter", 0.5); }
+      if (b.goal === "follow") {
+        if (!player.moving && d < 6) { // you stopped: it comes down beside you, or onto your shoulder
+          if (Math.random() < 0.35) { b.goal = "shoulder"; }
+          else { var g1 = { x: player.x + rnd(-15, 15), y: player.y + rnd(3, 9) }; snap(g1); b.goal = [g1.x, g1.y]; }
+        }
+      } else if (d < 1.5 && Math.abs(dz) < 1.5) {
+        if (b.goal === "shoulder") { b.st = "shoulder"; b.t = rnd(5, 9); }
+        else { b.st = "ground"; b.z = 0; b.t = rnd(3, 7); }
+      }
+      return;
+    }
+    // on the ground by your feet: pecking, a step this way and that; off again as soon as you walk
+    if (player.moving || hyp(b.x, b.y, player.x, player.y) > 40) { b.st = "fly"; b.goal = "follow"; return; }
+    if (Math.random() < dt * 1.5) { b.f = b.f ? 0 : 1; if (Math.random() < 0.3) { b.x += rnd(-2, 2); b.dir = Math.random() < 0.5 ? 0 : 1; } }
+    if (b.t <= 0) { b.st = "fly"; b.goal = "shoulder"; b.t = rnd(4, 8); }
+  }
+  function drawBuddy() {
+    var b = buddy, set = pigeonSprCache[b.tint] || pigeonSpr, im = (b.dir ? set.R : set.L)[b.f || 0];
+    if (b.z > 0.5 && b.st !== "shoulder") { ctx.globalAlpha = 0.55; img(shadowImg, b.x - 3, b.y - 1); ctx.globalAlpha = 1; }
+    var x = b.x - (im.width >> 1), y = b.y - im.height + 1 - b.z;
+    img(im, x, y);
+    b.drawn = [b.x, y + im.height / 2];
+  }
+  // what you wear: the paper cone hat you won at the fair (never in the mosque)
+  var hatImg = null;
+  function drawWear(a) {
+    var w = WD.WEAR ? WD.WEAR() : null;
+    if (!w || !w.hat || (RM && RM.id === "mosque") || a.pray || a.prayPose) return;
+    if (!hatImg) hatImg = A.sprite(9, 12, function (P) {
+      for (var r = 0; r < 10; r++) { var hw = Math.round(r * 0.38); P.r(4 - hw, r + 1, hw * 2 + 1, 1, ((r >> 1) % 2) ? "#F2C14A" : "#E8503F"); }
+      P.r(1, 10, 7, 1, "#4F97E8"); P.p(2, 9, "#4CBF73"); P.p(6, 8, "#4CBF73"); P.p(4, 5, "#FFFFFF");
+      P.el(3, 0, 3, 3, "#FFFFFF");
+    });
+    var bob = (a.moving && (a.frame === 1 || a.frame === 3)) ? -1 : 0, top = a.y - a.sp.ay + (a.sp.kid ? 9 : 5) + (a.sit ? 3 : 0) + bob - (a.jz || 0);
+    var dx = a.dir === 2 ? -1 : a.dir === 3 ? 1 : 0;
+    img(hatImg, a.x - 4 + dx, top - 9);
+  }
+
   /* ---------------- the place you are in ---------------- */
   function placeAt(x, y) {
     for (var i = 0; i < WD.PLACES.length; i++) { var r = WD.PLACES[i].r; if (x >= r[0] && x < r[0] + r[2] && y >= r[1] && y < r[1] + r[3]) return WD.PLACES[i]; }
@@ -1103,6 +1240,7 @@
     if (P.id === "workshop" && day >= D.workshopOpen) { sub = P.subOpen; bed = P.bedOpen; }
     if (P.id === "garden" && day >= D.gardenOpen) sub = day >= D.gardenGreen ? P.subGreen : P.subOpen;
     if (time === "suhoor") { if (P.subSuhoor) sub = P.subSuhoor; if (P.bedSuhoor) bed = P.bedSuhoor; }
+    if (P.fn) { var o = P.fn(day, time); if (o) { sub = o.sub || sub; bed = o.bed || bed; } } // a place that changes with the days (the fair's alley)
     return { name: P.name, sub: sub, bed: bed };
   }
   function checkPlace(dt) {
@@ -1272,7 +1410,7 @@
         if (a.look < 0) {
           a.look = rnd(2.5, 7);
           if (a.sit || a.clip) return;
-          a.dir = Math.random() < 0.55 ? a.homeDir : (Math.random() * 4) | 0;
+          a.dir = Math.random() < 0.55 && a.homeDir != null ? a.homeDir : (Math.random() * 4) | 0;
           if (a.queue && Math.random() < 0.5) a.dir = 1;
         }
       }
@@ -1469,6 +1607,7 @@
   function snapCam() { var t = camTarget(); cam.x = t.x; cam.y = t.y; clampCam(); }
   function pointOf(on) {
     if (!on) return null;
+    if (typeof on === "function") { var q = on(); return q ? { x: q[0], y: q[1] } : null; } // a moving point (a ride)
     if (typeof on === "string" && on.indexOf("+") > 0) on = on.split("+");
     if (Array.isArray(on) && typeof on[0] === "number") return { x: on[0], y: on[1] };
     if (Array.isArray(on)) {
@@ -1524,7 +1663,7 @@
 
   // what a room's own drawings get to paint with, in art pixels
   var RAo = { rect: function (x, y, w, h, c) { rect(x, y, w, h, c); }, img: function (c, x, y) { img(c, x, y); }, text: function (t, x, y, h, fg, f) { text(t, x, y, h, fg, f); }, alpha: function (a) { ctx.globalAlpha = a; } };
-  function RA() { RAo.T = T; RAo.on = lightsOn; RAo.time = time; RAo.day = day; RAo.st = RM ? RM.st : {}; return RAo; }
+  function RA() { RAo.T = T; RAo.on = lightsOn; RAo.time = time; RAo.day = day; RAo.st = RM ? RM.st : {}; RAo.me = player; RAo.spr = spr; RAo.wear = drawWear; RAo.K = K; return RAo; }
   // what a room's tick (RM.tick) may do with its people: the crowd in the tent cheers the dancer
   var roomApi = {
     actors: function () { return actors; },
@@ -1565,6 +1704,7 @@
     if (RM || cam.y > 150) return;
     if (skyOld && skyFade < 1) { img(skyOld, 0, 0); ctx.globalAlpha = skyFade; img(sky, 0, 0); ctx.globalAlpha = 1; }
     else img(sky, 0, 0);
+    (WD.SKY || []).forEach(function (f) { f(RA()); }); // things standing beyond the rooftops (the fair's big wheel)
     if (dark()) for (var i = 0; i < 18; i++) { var tw = Math.sin(T * 2 + i * 1.7); if (tw > 0.3) rect((i * 97 + 31) % W, (i * 53 + 11) % 90, 1, 1, tw > 0.8 ? "#FFFFFF" : "#C9CDF0"); }
     var cc = CLOUD[time] || CLOUD.asr;
     clouds.forEach(function (c) {
@@ -1605,7 +1745,7 @@
       else if (d.k === "fanous") drawFanous(b.x + d.x, b.y + d.y, d.c, b.x);
       else if (d.k === "bulbs") drawBulbs(b.x + d.x0, b.x + d.x1, b.y + d.y, d.sag);
     });
-    if (b.nemat && (time === "asr" || time === "pre")) drawBasket(b);
+    if (b.nemat && (time === "asr" || time === "pre") && day > 1) drawBasket(b); // on Day 1 her basket comes down to your window instead
     drawSigns(b);
   }
   function drawMosque(m) {
@@ -1782,6 +1922,7 @@
     }
   }
   function drawActor(a) {
+    if (a.hidden) return; // riding something that draws them itself (the carousel)
     if (a.custom) { // someone drawn by hand, every frame (the tanoura dancer)
       a.custom(RA(), a.x, a.y, a);
       if (a.emote && bubbles[a.emote.k] && a.emote.t > 0.08) img(bubbles[a.emote.k], a.x - 6, a.y - 48);
@@ -1809,6 +1950,7 @@
       var cut = Math.round(a.clip - y);
       if (cut > 0) { var x0 = X(x), y0 = Y(y); ctx.drawImage(f, 0, 0, f.width, cut, x0, y0, X(x + f.width) - x0, Y(y + cut) - y0); }
     } else img(f, x, y);
+    if (a === player) drawWear(a);
     var head = a.y - (sp.kid ? 24 : 30) - jz + (a.sit ? 3 : 0) + (pp === "ruku" ? 6 : pp === "bow" ? 3 : pp === "sujood" ? 13 : pp === "jalsa" ? 6 : 0);
     if (a.emote && bubbles[a.emote.k] && a.emote.t > 0.08) img(bubbles[a.emote.k], a.x - 6, head - 12);
     if (a.itemUntil && T > a.itemUntil && !cutOn) { a.item = null; a.itemUntil = 0; }
@@ -1860,6 +2002,13 @@
     var set = pigeonSprCache[p.tint] || pigeonSpr, im = (p.dir ? set.R : set.L)[p.f];
     if (p.z > 0.5) { ctx.globalAlpha = 0.6; img(shadowImg, p.x - 3, p.y - 1); ctx.globalAlpha = 1; }
     img(im, p.x - (im.width >> 1), p.y - im.height + 1 - p.z);
+  }
+  // something small on the ground that catches the light now and then (only if you look closely)
+  function drawPickup(q) {
+    var im = q.img;
+    if (im) img(im, Math.round(q.x - im.width / 2), Math.round(q.y - im.height + 1 + (q.bob ? Math.round(Math.sin(T * 2.4) * 1) : 0)));
+    var tw = (T * 0.8 + q.x * 0.13) % 2.2;
+    if (tw < 0.45) { var a = Math.sin(tw / 0.45 * Math.PI); ctx.globalAlpha = a; rect(q.x, q.y - 7, 1, 5, "#FFF4C0"); rect(q.x - 2, q.y - 5, 5, 1, "#FFF4C0"); rect(q.x, q.y - 5, 1, 1, "#FFFFFF"); ctx.globalAlpha = 1; }
   }
   function drawBall() {
     if (!ball || ball.hidden) return;
@@ -1990,7 +2139,7 @@
     if (RM) {
       myExits().forEach(function (e) {
         var cx = e.r[0] + e.r[2] / 2, cy = e.r[1] + e.r[3] / 2;
-        if (hyp(player.x, player.y, cx, cy) < 30) label(e.to === "hara" ? "اخرج للحارة" : e.to === "roof" ? "اطلع السطوح" : "انزل البيت", cx, e.r[1] - 26);
+        if (hyp(player.x, player.y, cx, cy) < 30) label(fmt(e.to === "hara" ? "{اخرج|اخرجي} للحارة" : e.to === "roof" ? "{اطلع|اطلعي} السطوح" : "{انزل|انزلي} البيت"), cx, e.r[1] - 26);
       });
       return;
     }
@@ -2000,7 +2149,7 @@
       var s = WD.SPOTS[k];
       if (!s || !doorNow(D[k]) || !timeOk(s) || hyp(player.x, player.y, s.stand[0], s.stand[1]) > 36) return;
       if (OB && OB.goals.some(function (g) { var m = markOf(g); return m && m.spot === k; })) return;
-      label((D[k].open && !D[k].open(day, flags()) ? "مقفول · " : "ادخل · ") + s.name, s.mark[0], s.mark[1] + 8);
+      label((D[k].open && !D[k].open(day, flags(), time) ? "مقفول · " : fmt("{ادخل|ادخلي} · ")) + s.name, s.mark[0], s.mark[1] + 8);
     });
   }
   // short words over a head, like the imam's takbeer
@@ -2050,8 +2199,10 @@
     cats.forEach(function (c) { if (visible(c.x - 8, c.y - 10, c.x + 8, c.y + 2)) list.push({ y: c.y, c: c }); });
     pigeons.forEach(function (p) { if (p.z < 14 && visible(p.x - 6, p.y - 20, p.x + 6, p.y + 2)) list.push({ y: p.y, p: p }); });
     if (ball) list.push({ y: ball.y + 0.1, b: 1 });
+    livePickups().forEach(function (q) { if (visible(q.x - 6, q.y - 10, q.x + 6, q.y + 2)) list.push({ y: q.y - 0.5, q: q }); });
+    if (buddy && !(O && O.title) && !player.hidden) list.push({ y: buddy.st === "shoulder" ? player.y + 0.3 : buddy.y + (buddy.z > 10 ? 40 : 0), bd: 1 });
     list.sort(function (a, b) { return a.y - b.y; });
-    list.forEach(function (o) { if (o.s) o.s.draw(); else if (o.a) drawActor(o.a); else if (o.c) drawCat(o.c); else if (o.p) drawPigeon(o.p); else drawBall(); });
+    list.forEach(function (o) { if (o.s) o.s.draw(); else if (o.a) drawActor(o.a); else if (o.c) drawCat(o.c); else if (o.p) drawPigeon(o.p); else if (o.q) drawPickup(o.q); else if (o.bd) drawBuddy(); else drawBall(); });
     drawCanopies(dt);
     drawStrings();
     if (RM && RM.over) RM.over(RA());
@@ -2169,7 +2320,7 @@
     actors.forEach(function (a) { if (a.kick > 0) a.kick -= dt; stepFx(a, dt); });
     if (RM && RM.pray && dark()) stepPray(dt);
     if (RM && RM.tick) RM.tick(RA(), dt, roomApi);
-    thinkActors(dt); thinkBall(dt); thinkCats(dt); thinkPigeons(dt); stepParts(dt);
+    thinkActors(dt); thinkBall(dt); thinkCats(dt); thinkPigeons(dt); thinkBuddy(dt); stepParts(dt);
     if (!RM) stepSky(dt);
     checkPlace(dt);
     follow(dt);
@@ -2239,15 +2390,31 @@
         go.addEventListener("click", function (e) { e.stopPropagation(); goDeed(x.d); });
       });
     }
+    // the hara's hidden things for today: a key somewhere, a door to knock on (js/hara-places.js)
+    var xs = WD.QUESTS ? WD.QUESTS(day, time) : [];
+    if (xs.length) {
+      el("li", "mp-qh", qList).textContent = "خبايا الحارة";
+      xs.forEach(function (x) {
+        var li = el("li", "deed" + (x.done ? " done" : ""), qList);
+        el("b", "mp-qstar", li).textContent = x.icon || "✦";
+        var sp = el("span", "", li); sp.textContent = fmt(x.t);
+        if (x.done) { el("i", "ck", li).setAttribute("aria-hidden", "true"); return; }
+        if (x.go) {
+          var go = el("button", "mp-qgo", li); go.type = "button"; go.textContent = "فين؟";
+          go.setAttribute("aria-label", "وريني فين: " + fmt(x.t));
+          go.addEventListener("click", function (e) { e.stopPropagation(); qOpen(false); if (RM) { var ex = myExits().filter(function (y) { return y.to === "hara"; })[0]; if (ex) walkTo(ex.r[0] + ex.r[2] / 2, ex.r[1] + ex.r[3] / 2, { exit: ex }); return; } var s = WD.SPOTS[x.go]; if (s) peek(s.mark[0], s.mark[1] + 20).then(function () { goToSpot(x.go); }); });
+        }
+      });
+    }
     var mem = el("li", "mp-qmem", qList);
-    mem.textContent = "فوانيس الشهر المنوّرة: " + ar(day) + " من ٣٠ · خبايا لقيتها: " + ar(memCount()) + " من " + ar(WD.SECRETS.length);
+    mem.textContent = "يوم " + ar(day) + " من ٣٠ رمضان · خبايا لقيتها: " + ar(memCount()) + " من " + ar(WD.SECRETS.length);
   }
   function refreshHud() {
     if (!taskEl) return;
     dayEl.textContent = ar(day) + " رمضان";
     clockEl.textContent = clockTxt; clockEl.hidden = !clockTxt;
     var many = OB && OB.goals.length > 1;
-    if (OB) { taskK.textContent = OB.key || (many ? "اختار" : "المهمة"); taskT.textContent = OB.task || ""; }
+    if (OB) { taskK.textContent = OB.key || (many ? fmt("{اختار|اختاري}") : "المهمة"); taskT.textContent = OB.task || ""; }
     else { taskK.textContent = (O && O.freeKey) || "الحارة"; taskT.textContent = O && O.freeTask ? fmt(O.freeTask) : ""; }
     goBtn.hidden = !OB || many;
     choiceBox.textContent = "";
@@ -2320,7 +2487,7 @@
       cutOn = false;
       root.classList.remove("cut");
       shot = null; zoomGoal = 1;
-      actors.forEach(function (a) { a.scripted = false; a.item = null; a.onArrive = null; if (a !== player && a.path && !a.kind) a.path = null; });
+      actors.forEach(function (a) { a.scripted = false; if (!a.keepItem) a.item = null; a.onArrive = null; if (a !== player && a.path && !a.kind) a.path = null; });
       player.item = null; player.sit = false; player.prayPose = null; player.pray = null;
       refreshHud();
     },
@@ -2335,7 +2502,7 @@
         if (meta) a.person = meta;
         actors.push(a);
       } else if (cast && a.sid !== cast) { a.sid = cast; a.sp = spr(cast); }
-      a.x = x; a.y = y; a.dir = dir || 0; a.path = null; a.moving = false; a.scripted = true; a.clip = null; a.play = false; a.queue = false; a.pray = null; a.prayPose = null;
+      a.x = x; a.y = y; a.dir = dir || 0; a.homeDir = a.dir; a.path = null; a.moving = false; a.scripted = true; a.clip = null; a.play = false; a.queue = false; a.pray = null; a.prayPose = null;
       a.sit = pose === "sit"; a.sortY = null; a.work = pose === "work" ? 1 : 0; a.cid = a.cid || id;
       actors = actors.filter(function (b) { return b === a || b === player || hyp(b.x, b.y, x, y) > 4; });
       return a;
@@ -2469,7 +2636,7 @@
       sky = HARA.sky(nt, day);
     }
     time = nt; TM = TIMES[time];
-    if (G && !RM && builtFor !== (time === "suhoor" ? "suhoor" : "")) rebuild(); // the hara at suhoor has its own things up (the tent)
+    if (G && !RM && builtFor !== time) rebuild(); // some things only stand at some hours (the suhoor tent, Saber's toolbox, the fair gate's lights)
     if (instant) { lightsOn = onGoal(); amb = ambGoal().slice(); }
     if (root) root.className = "map on t-" + time + (cutOn ? " cut" : "") + (O && O.title ? " title" : "");
   }
@@ -2508,8 +2675,10 @@
       playBed();
       qList.hidden = true; qBtn.hidden = false;
       hint.classList.toggle("gone", !O.hint);
+      hint.textContent = fmt("{اضغط|اضغطي} على أي حتة عشان تمشي، أو على حد عشان {تكلّمه|تكلّميه}. في الحارة خبايا مستخبية ✦");
       refreshHud();
       kick();
+      if (WD.onStart && !O.title) setTimeout(function () { if (isOpen) WD.onStart(day, time); }, 1200); // a key you missed, a place that opened
     },
     stop: function () {
       isOpen = false;
@@ -2534,6 +2703,20 @@
       if (RM && RM.id === id) RM.st = roomState[key];
     },
     refresh: refreshHud,
+    // something changed for good (a door unlocked, a shop opened): paint the hara again, with its people
+    rebuild: function () { if (!RM) { HARA.houses.forEach(function (b) { b.setDay(day); }); rebuild(); } refreshHud(); },
+    repop: function () { populate(); },
+    // a game over the map: the hara stops drawing underneath, then picks up where it was
+    pause: function () { if (raf) cancelAnimationFrame(raf); raf = 0; isOpen = false; },
+    resume: function () { isOpen = true; kick(); },
+    day: function () { return day; },
+    time: function () { return time; },
+    me: function () { return player; },
+    hasBuddy: function () { return !!buddy; },
+    resetBuddy: placeBuddy,
+    talk: function (t) { return new Promise(function (res) { openTalk(t, res); }); },
+    fmt: function (t) { return fmt(t); },
+    item: function (k, c) { itemImg[k] = c; }, // something people can hold up (a toy from Shawky's shop)
     cut: CUT,
     go: function (loc, at, o) { return goLoc(loc, at, o); },
     where: function () { return { loc: LOC, x: player.x, y: player.y, dir: player.dir }; },

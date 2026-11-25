@@ -46,6 +46,7 @@
   function flags() { return (S.run && S.run.flags) || S.after.flags || {}; }
   function cond(c) {
     if (!c) return true;
+    if (c.indexOf("&") > 0) return c.split("&").every(cond); // "nemat&!sign": all of them
     var fl = flags();
     return c.charAt(0) === "!" ? !fl[c.slice(1)] : !!fl[c];
   }
@@ -116,20 +117,24 @@
     }, o));
   }
   // walk.html?day=2&time=suhoor opens on a suhoor night (a preview of the suhoor days, before their stories are written)
-  var URL_TIME = (function () { var m = /[?&]time=([a-z]+)/.exec(location.search); return m ? m[1] : ""; })();
+  var URL_TIME = (function () { var m = /[?&]time=([a-z]+)/.exec(location.search); return m && /^(asr|pre|maghrib|night|suhoor)$/.test(m[1]) ? m[1] : ""; })();
+  var URL_DAY = (function () { var m = /[?&]day=(\d+)/.exec(location.search); return m ? Math.max(1, Math.min(30, +m[1])) : 0; })();
+  var PREVIEW = !!(URL_DAY || URL_TIME); // walk.html?day=15&time=night: a look at a day whose story isn't written yet
+  var CLOCKS = { asr: "العصر", pre: "قبل المغرب", maghrib: "المغرب", night: "بالليل", suhoor: "السحور · ٢:٣٠" };
   function showTitle() {
     mode("title");
     EP = EPS[1];
     var sahra = URL_TIME === "suhoor";
     startMap({ title: true, time: sahra ? "suhoor" : "night", loc: "hara", at: [300, 330, 0] });
     var done = !!S.done[1], inProg = S.run && S.run.ep === 1, lit = Object.keys(S.done).length;
-    var go = h("button", { type: "button", "class": "wl-btn" + (sahra ? "" : " big"), text: inProg ? "كمّل الحكاية" : done ? "العب اليوم تاني" : "ابدأ" , onclick: function () { begin(); } });
+    var go = h("button", { type: "button", "class": "wl-btn" + (sahra ? "" : " big"), text: inProg ? "نكمّل الحكاية" : done ? "نلعب اليوم تاني" : "يلا نبدأ", onclick: function () { begin(); } });
     var kids = [
       h("p", { "class": "wl-t-k", text: "حكاية كل يوم في رمضان" }),
       h("h1", { "class": "wl-t-logo", text: "فوانيس الحارة" }),
-      h("p", { "class": "wl-t-sub", text: "كل يوم، حد في الحارة محتاجك. نوّرت " + ar(lit) + " من " + ar(TOTAL) + " فانوس." }),
+      h("p", { "class": "wl-t-sub", text: "كل يوم، حد في الحارة محتاجك." + (lit ? T(" {نوّرت|نوّرتي} ") + ar(lit) + " من " + ar(TOTAL) + " فانوس." : "") }),
       h("div", { "class": "wl-t-acts" }, [
         sahra ? h("button", { type: "button", "class": "wl-btn big", text: "ليلة سحور في الحارة", onclick: function () { audioOn(); suhoorNight(); } }) : null,
+        PREVIEW && !sahra ? h("button", { type: "button", "class": "wl-btn big", text: "امشي في الحارة · يوم " + ar(URL_DAY || 1) + " رمضان", onclick: function () { audioOn(); preview(); } }) : null,
         go,
         done && !sahra ? h("button", { type: "button", "class": "wl-btn", text: "امشي في الحارة بالليل", onclick: function () { audioOn(); freeRoam(true); } }) : null
       ]),
@@ -145,9 +150,9 @@
 
   function notice(next) {
     sheet("wl-card", [h("div", { "class": "wl-panel" }, [
-      h("h2", { "class": "wl-h", text: "قبل ما تبدأ" }),
+      h("h2", { "class": "wl-h", text: "قبل البداية" }),
       h("p", { text: "حكايات فوانيس الحارة مستوحاة من حياتنا، والشخصيات من خيالنا." }),
-      h("p", { text: "كل تبرع بتعمله جوّه اللعبة بيروح لحملات EFB في رمضان: [اسم الحملة] و[اسم الحملة]." }),
+      h("p", { text: "كل تبرع جوّه اللعبة بيروح لحملات EFB في رمضان." }),
       h("p", { text: "وكل اختيار بيساعد، حتى لو ببلاش." }),
       h("button", { type: "button", "class": "wl-btn", text: "يلا بينا", onclick: function () { S.prefs.noticeSeen = true; save(); next(); } })
     ])]);
@@ -169,7 +174,7 @@
     });
     sheet("wl-card", [h("div", { "class": "wl-panel" }, [
       h("h2", { "class": "wl-h", text: "أهلًا في الحارة" }),
-      h("label", { "class": "wl-k", "for": "wlName", text: "اسمك إيه؟ الجيران هينادوك بيه." }),
+      h("label", { "class": "wl-k", "for": "wlName", text: "اسمك إيه؟ ده الاسم اللي الجيران هينادوا بيه." }),
       input,
       h("p", { "class": "wl-k", text: "نكلّمك إزاي؟" }),
       h("div", { "class": "wl-whos", role: "group", "aria-label": "نكلّمك إزاي" }, [mB, fB]),
@@ -187,8 +192,9 @@
     var inStory = !!S.run;
     sheet("wl-card", [h("div", { "class": "wl-panel" }, [
       h("h2", { "class": "wl-h", text: "فوانيس الحارة" }),
-      h("p", { "class": "wl-k", text: inStory ? "الحكاية بتتحفظ لوحدها. ترجع تكمّل من نفس المشهد." : "الحارة مستنياك." }),
+      h("p", { "class": "wl-k", text: T(inStory ? "الحكاية بتتحفظ لوحدها. لما {ترجع|ترجعي} {هتكمّل|هتكمّلي} من نفس المشهد." : "الحارة {مستنياك|مستنياكي}.") }),
       h("button", { type: "button", "class": "wl-btn", text: "ارجع للحارة", onclick: closeSheet }),
+      PREVIEW && MAP.isOpen() ? h("button", { type: "button", "class": "wl-btn ghost", text: "غيّر الوقت · " + (CLOCKS[MAP.time()] || ""), onclick: nextTime }) : null,
       S.done[1] ? h("button", { type: "button", "class": "wl-btn ghost", text: "صفحة يومك", onclick: function () { journal(EPS[1], S.done[1], true); } }) : null,
       h("button", { type: "button", "class": "wl-btn ghost", text: "الشاشة الأولى", onclick: function () { closeSheet(); showTitle(); } })
     ])]);
@@ -406,7 +412,7 @@
         C.end(); inCut = false;
         if (ch.follow) C.follow(ch.follow, true);
         walking = opts.map(function (o) { return EP.nodes[o.next]; }); // whichever place you pick, its people are already there
-        MAP.objective({ task: T(ch.prompt), key: "اختار", goals: opts.map(function (o) {
+        MAP.objective({ task: T(ch.prompt), key: T("{اختار|اختاري}"), goals: opts.map(function (o) {
           return Object.assign({}, o.walk, { label: T(o.t), pick: function () { walking = null; pickOpt(o, true); } });
         }) });
       });
@@ -427,7 +433,7 @@
     var opts = g.options;
     return new Promise(function () {
       mode("give");
-      var hold = h("p", { "class": "wl-g-hold", text: "اضغط مطوّل على اختيارك عشان تأكّده" });
+      var hold = h("p", { "class": "wl-g-hold", text: T("{اضغط|اضغطي} مطوّل على اختيارك عشان {تأكّده|تأكّديه}") });
       var list = h("div", { "class": "wl-g-list" }, opts.map(function (o, i) {
         var b = h("button", { type: "button", "class": "wl-g-opt" + (o.price ? "" : " free") }, [
           h("span", { "class": "wl-g-ic", text: o.icon || GIFT_ICON[i] || "✦", "aria-hidden": "true" }),
@@ -465,7 +471,7 @@
           busy = false;
           btn.style.setProperty("--p", 0);
           COH.track("give", { episode: EP.id, option: o.key, amount: o.price, status: res ? res.status : "failed" });
-          if (res && res.status === "failed") toast("الدفع ما اكتملش. جرّب تاني.");
+          if (res && res.status === "failed") toast(T("الدفع ما اكتملش. {جرّب|جرّبي} تاني."));
           if (!card.isConnected) layer.appendChild(card);
         });
       }
@@ -537,10 +543,10 @@
       h("h2", { "class": "wl-h", text: ep.endTitle }),
       h("p", { "class": "wl-j-sec", text: "حكايتك النهارده" }), recap,
       giftCard, share,
-      h("p", { "class": "wl-counter" }, ["الليلة في الحارة: ", h("b", { text: ar(SAMPLE_COUNTER) }), " جار اتساعد ", h("span", { text: "(رقم تجريبي)" })]),
+      h("p", { "class": "wl-counter" }, ["الليلة في الحارة: ", h("b", { text: ar(SAMPLE_COUNTER) }), " جار اتساعدوا ", h("span", { text: "(رقم تجريبي)" })]),
       next,
       h("button", { type: "button", "class": "wl-btn", text: fromMenu ? "ارجع للحارة" : "امشي في الحارة بالليل", onclick: function () { if (fromMenu) closeSheet(); else freeRoam(false); } }),
-      h("button", { type: "button", "class": "wl-btn ghost", text: "العب اليوم تاني باختيارات تانية", onclick: function () { S.run = null; save(); closeSheet(); begin(); } })
+      h("button", { type: "button", "class": "wl-btn ghost", text: T("{العب|العبي} اليوم تاني باختيارات تانية"), onclick: function () { S.run = null; save(); closeSheet(); begin(); } })
     ])]);
   }
   // after the story, the hara at night is yours: walk, talk, go into places, find the secrets
@@ -550,12 +556,30 @@
     var go = function () {
       if (fromTitle) startMap({ time: "night", loc: "hara", at: [300, 330, 0], freeTask: "الحارة بالليل. {اتمشى|اتمشي} {وسلّم|وسلّمي} على الجيران {وادخل|وادخلي} الأماكن.", hint: true });
       else { if (inCut) { C.end(); inCut = false; } MAP.objective(null); MAP.start({ day: EP.day, fem: S.prefs.gender === "f", name: S.prefs.name, fmt: T, cond: cond, flags: flags, quests: quests, time: "night", loc: "hara", at: MAP.where().loc === "hara" ? [MAP.where().x, MAP.where().y, 0] : [300, 330, 0], freeTask: "الحارة بالليل. {اتمشى|اتمشي} {وسلّم|وسلّمي} على الجيران {وادخل|وادخلي} الأماكن.", hint: true }); }
-      MAP.clock("بعد التراويح");
+      MAP.clock("بالليل");
     };
     if (fromTitle) C.fade(1, 400).then(function () { go(); return C.fade(0, 700); });
     else go();
   }
 
+  // a preview of a day: walk the hara at that day and hour, with its new places, keys and errands
+  function preview() {
+    closeSheet(); mode("play");
+    EP = EPS[1];
+    if (!S.prefs.gender) { profile(preview); return; }
+    var t = URL_TIME || "asr";
+    C.fade(1, 400).then(function () {
+      startMap({ day: URL_DAY || 1, time: t, loc: "hara", at: t === "asr" || t === "pre" ? [268, 300, 0] : [300, 330, 0], freeTask: "يوم " + ar(URL_DAY || 1) + " رمضان. {اتمشى|اتمشي} في الحارة {ودوّر|ودوّري} على الخبايا.", hint: true });
+      MAP.clock(CLOCKS[t]);
+      return C.fade(0, 700);
+    });
+  }
+  // in a preview, the menu can move the clock
+  function nextTime() {
+    var order = ["asr", "pre", "maghrib", "night", "suhoor"], t = order[(order.indexOf(MAP.time()) + 1) % order.length];
+    closeSheet();
+    C.fade(1, 300).then(function () { MAP.setTime(t, true); MAP.clock(CLOCKS[t]); return C.fade(0, 500); });
+  }
   // a suhoor night: the hara awake at half past two, Sayed's tent lit up, the musaharati on his round
   function suhoorNight() {
     closeSheet(); mode("play");

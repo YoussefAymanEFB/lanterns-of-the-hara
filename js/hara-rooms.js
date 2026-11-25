@@ -55,6 +55,15 @@
     P.r(x, y, w, h, fr);
     P.r(x + 2, y + 2, w - 4, h - 4, sky);
     P.r(x + 2, y + 2, w - 4, 2, lt(sky, 0.35));
+    if (o.open) { // an open window: no glass, no bars; the room paints the street outside live
+      P.r(x - 2, y + h, w + 4, 2, "#E8DCC4"); P.r(x - 2, y + h + 2, w + 4, 1, "#A8987C");
+      P.r(x + 1, y + 1, 1, h - 2, dk(fr, 0.25)); P.r(x + w - 2, y + 1, 1, h - 2, dk(fr, 0.25));
+      if (o.shutters) [x - 6, x + w + 1].forEach(function (sx) {
+        P.r(sx, y, 5, h, o.shutters);
+        for (var j = y + 1; j < y + h - 1; j += 2) P.r(sx + 1, j, 3, 1, dk(o.shutters, 0.25));
+      });
+      return;
+    }
     if (o.view) { // the building across the street
       P.r(x + 2, y + h - 2 - (h >> 1), (w >> 1) - 1, h >> 1, o.view);
       P.r(x + 4, y + h - (h >> 1) + 1, 2, 3, dk(o.view, 0.3));
@@ -439,7 +448,34 @@
       seed: 1
     });
     var P = s.P;
-    windowAt(P, 32, 12, 24, 22, { sky: "#A9DAEE", view: "#E6B266", shutters: "#4F97A0" });
+    windowAt(P, 32, 12, 24, 22, { sky: "#A9DAEE", shutters: "#4F97A0", open: true });
+    P.r(27, 9, 35, 1, "#8A6224"); P.r(27, 8, 2, 3, "#C8963E"); P.r(60, 8, 2, 3, "#C8963E"); // the curtain rod
+    // the street through the open window, by the hour: sky, the house across, the zeena, Nemat's rope and basket
+    var SKY = { asr: ["#8EC8E8", "#CFE9F3"], pre: ["#F0A070", "#FFD9A0"], maghrib: ["#6E4A8E", "#F08A5A"], night: ["#141C3C", "#26305A"], suhoor: ["#10163A", "#222C58"] };
+    function street(R) {
+      var sk = SKY[R.time] || SKY.asr, t = R.T, dark = R.time === "night" || R.time === "suhoor";
+      for (var y = 0; y < 18; y++) R.rect(34, 14 + y, 20, 1, y < 9 ? sk[0] : sk[1]);
+      if (dark) { R.rect(49, 16, 1, 1, "#F4EFE4"); R.rect(39, 18, 1, 1, "rgba(244,239,228,0.7)"); R.rect(52, 21, 1, 1, "rgba(244,239,228,0.6)"); }
+      // the house across the lane, with its own window
+      R.rect(34, 22, 11, 10, dark ? "#5A5068" : "#DCD3C2"); R.rect(34, 22, 11, 1, dark ? "#6E6480" : "#F0E8DA");
+      R.rect(36, 25, 3, 4, dark ? "#FFD98A" : "#4F8A6A"); R.rect(41, 25, 3, 4, dark ? "#FFC878" : "#4F8A6A");
+      R.rect(45, 27, 9, 5, dark ? "#3E3A4C" : "#AEB4B8"); R.rect(45, 27, 9, 1, dark ? "#4E4A5C" : "#C4CACE"); // a lower roof further off
+      // the zeena string across the street
+      var cols = ["#E8503F", "#F2C14A", "#4F97C8", "#6EBE58"];
+      for (var i = 0; i < 20; i++) {
+        var zy = 17 + Math.round(Math.sin(i / 19 * Math.PI) * 2);
+        R.rect(34 + i, zy, 1, 1, "#5A4A40");
+        if (i % 3 === 1) { var c = cols[(i / 3 | 0) % 4]; R.rect(34 + i, zy + 1, 2, 1, c); R.rect(34 + i, zy + 2, 1, 1, c); }
+      }
+    }
+    function curtains(R) { // light lace that breathes in the breeze
+      var sw = Math.round(Math.sin(R.T * 1.3) * 1.2), sw2 = Math.round(Math.sin(R.T * 1.3 + 1.4) * 1.2);
+      for (var y = 10; y < 35; y++) {
+        var f = (y - 10) / 24, dl = Math.round(sw * f), dr = Math.round(sw2 * f);
+        R.rect(29 + dl, y, 4, 1, y % 3 ? "#F4EFE4" : "#E2D8C6"); R.rect(33 + dl, y, 1, 1, "rgba(200,190,170,0.6)");
+        R.rect(56 + dr, y, 4, 1, y % 3 ? "#F4EFE4" : "#E2D8C6"); R.rect(55 + dr, y, 1, 1, "rgba(200,190,170,0.6)");
+      }
+    }
     return {
       id: "home", name: "بيتنا", sub: "ريحة شوربة لسان عصفور", W: W, HGT: HG, ground: s.c, bed: "homeIn", wall: WALL,
       props: [
@@ -462,17 +498,24 @@
           R.rect(113, 23, 1, 1, "#3A2E3A");
           for (var i = 1; i < 5; i++) R.rect(113 + Math.round(Math.cos(a1) * i * 0.7), 23 + Math.round(Math.sin(a1) * i * 0.7), 1, 1, "#3A2E3A");
           for (var j = 1; j < 6; j++) R.rect(113 + Math.round(Math.cos(a2) * j * 0.85), 23 + Math.round(Math.sin(a2) * j * 0.85), 1, 1, "#C8443A");
+          street(R);
+          // Nemat's rope and basket come down from her balcony, outside the open window
           var k = R.st.basket || 0, rp = R.st.rope || 0;
           if (rp > 0 && !(k > 0)) { // just the rope and its hook, come down for the basket you're carrying
-            var sw2 = Math.round(Math.sin(t * 1.8) * 1.5 * Math.min(1, rp)), ry = 12 + Math.round(18 * Math.min(1, rp));
-            for (var y2 = 12; y2 < ry; y2++) R.rect(44 + Math.round(sw2 * (y2 - 12) / 18), y2, 1, 1, "#F4ECE0");
-            R.rect(43 + sw2, ry, 3, 1, "#8A8478"); R.rect(45 + sw2, ry - 2, 1, 2, "#8A8478");
+            var sw2 = Math.round(Math.sin(t * 1.8) * 1.2 * Math.min(1, rp)), ry = 14 + Math.round(14 * Math.min(1, rp));
+            for (var y2 = 14; y2 < ry; y2++) R.rect(45 + Math.round(sw2 * (y2 - 14) / 14), y2, 1, 1, "#F4ECE0");
+            R.rect(44 + sw2, ry, 3, 1, "#5A5A64"); R.rect(44 + sw2, ry - 2, 1, 2, "#5A5A64"); R.rect(46 + sw2, ry - 1, 1, 1, "#5A5A64"); // the hook
           }
           if (k > 0) {
-            var sw = Math.round(Math.sin(t * 1.8) * 1.5 * Math.min(1, k)), by = 12 + Math.round(16 * Math.min(1, k));
-            for (var y = 12; y < by; y++) R.rect(44 + Math.round(sw * (y - 12) / 16), y, 1, 1, "#F4ECE0");
-            R.rect(40 + sw, by, 9, 6, "#B98A55"); R.rect(40 + sw, by, 9, 1, "#D9AA70"); R.rect(41 + sw, by + 3, 7, 1, "#8A6238"); R.rect(43 + sw, by - 1, 3, 1, "#F4EFE4");
+            var sw = Math.round(Math.sin(t * 1.8) * 1.2 * Math.min(1, k)), by = 7 + Math.round(18 * Math.min(1, k));
+            var bk = function (x, y, w, h, c) { var y0 = Math.max(y, 14); if (y + h > y0) R.rect(x, y0, w, y + h - y0, c); }; // it slides in from above the frame
+            for (var y = 14; y < by - 2; y++) R.rect(45 + Math.round(sw * (y - 14) / 12), y, 1, 1, "#F4ECE0");
+            bk(42 + sw, by - 2, 6, 1, "#6A4528"); bk(41 + sw, by - 1, 1, 1, "#6A4528"); bk(48 + sw, by - 1, 1, 1, "#6A4528"); // the handle
+            bk(43 + sw, by - 1, 4, 1, "#F4EFE4"); // the note and the cloth over the money
+            bk(39 + sw, by, 11, 7, "#5A3A22"); bk(40 + sw, by, 9, 6, "#C8965A"); bk(40 + sw, by, 9, 1, "#EAC07E");
+            bk(40 + sw, by + 2, 9, 1, "#9A6A3A"); bk(40 + sw, by + 4, 9, 1, "#9A6A3A"); bk(42 + sw, by + 1, 1, 5, "#B07E48"); bk(46 + sw, by + 1, 1, 5, "#B07E48");
           }
+          curtains(R);
         } }
       ],
       over: function (R) { // the ceiling lamp on its cord
@@ -495,8 +538,9 @@
         else if (time === "maghrib") mama.at = [66, 150, 3, "sit"];
         else { mama.at = [151, 137, 1, "sit"]; mama.talk = [126, 134]; } // on the kanaba, watching the series
         mama.say = [
-          { when: "asr", t: "«الشوربة على النار. {روح|روحي} هات العيش بقى!»" },
-          { when: "pre", t: "«{افرش|افرشي} معايا السفرة… لا استنى، العيش الأول!»" },
+          { when: "asr", t: "«الشوربة على النار. {روح هات|روحي هاتي} العيش بقى!»" },
+          { when: "pre", if: "at_homeback", t: "«تسلم إيدك على العيش! {افرش|افرشي} معايا الطبلية.»" },
+          { when: "pre", t: "«{افرش|افرشي} معايا السفرة… لا {استنى|استني}، العيش الأول!»" },
           { when: "maghrib", t: "«{كُل|كُلي} الشوربة وهي سخنة.»" },
           { t: "«المسلسل هيبدأ! {اقعد|اقعدي} جنبي.»" }];
         return [mama];
@@ -563,13 +607,13 @@
           R.rect(128, 56, 26, 2, "#FFD060");
         } },
         { layer: "sort", y: 96, draw: function (R) { // Sobhy's long peel going in and out of the oven
-          if (R.time === "maghrib") return;
+          if (R.time === "maghrib" || R.time === "night") return;
           var k = (Math.sin(R.T * 1.4) + 1) / 2, ex = 134 + Math.round(k * 8), ey = 56;
           for (var i = 0; i <= 24; i++) R.rect(Math.round(156 + (ex - 156) * i / 24), Math.round(80 + (ey - 80) * i / 24), 1, 1, WOOD[2]);
           R.rect(ex - 4, ey - 1, 8, 2, WOOD[1]);
         } },
         { layer: "sort", y: 177, draw: function (R) { // Zaki's pouring cup going round and round, a thin stream of batter under it
-          if (R.time === "maghrib") return;
+          if (R.time !== "asr" && R.time !== "pre") return;
           var a = R.T * 2.2, cx = Math.round(27 + Math.cos(a) * 8), cy = Math.round(163 + Math.sin(a) * 2);
           R.rect(cx - 2, cy - 9, 5, 4, BRASS[1]); R.rect(cx - 2, cy - 9, 5, 1, BRASS[0]); R.rect(cx + 3, cy - 8, 2, 1, BRASS[2]);
           for (var s = cy - 5; s < cy; s++) R.rect(cx, s, 1, 1, "#F6E8C0");
@@ -590,18 +634,19 @@
         var out = [
           { id: "hassan", cast: "hassan", name: "عم حسن", face: "hassan", at: [64, 94, 0], talk: [64, 112], say: [
             { when: "night", t: "«العجين بيرتاح لحد السحور. {تعالى|تعالي} الساعة ٢ هتلاقي العيش طالع.»" },
+            { when: "maghrib", t: "«تقبّل الله! الفرن واقف لحد ما نفطر ونصلي.»" },
             { if: "at_bakery", t: "«سلّم لي على عم صابر لو {شفته|شفتيه}.»" },
-            { t: "«واحد واحد يا جماعة! العيش مش هيطير!»" }] }
+            { t: "«واحد واحد يا جماعة! العيش مش هيخلص!»" }] }
         ];
-        if (time !== "maghrib") out.push({ cast: "sobhy", name: "صبحي", at: [158, 96, 1], say: ["«سخن سخن! {حاسب|حاسبي} الفرن نار!»", "«عم حسن بيقول العجينة زي البني آدم، محتاجة صبر.»"] });
-        if (time !== "maghrib") out.push({ cast: "zaki", name: "عم زكي", at: [27, 156, 0], talk: [62, 166], say: ["«الكنافة البلدي مش بتتعمل غير في رمضان. باقي السنة بستناه.»", "«لفّة… ولفّة… ولفّة. أربعين سنة بلفّ الكوز ده.»", "«الكنافة عايزة صاج سخن وإيد صبورة.»"] });
+        if (time !== "maghrib" && time !== "night") out.push({ cast: "sobhy", name: "صبحي", at: [158, 96, 1], say: ["«سخن سخن! {حاسب|حاسبي} الفرن نار!»", "«عم حسن بيقول العجينة زي البني آدم، محتاجة صبر.»"] });
+        if (time === "asr" || time === "pre") out.push({ cast: "zaki", name: "عم زكي", at: [27, 156, 0], talk: [62, 166], say: ["«الكنافة البلدي مش بتتعمل غير في رمضان. باقي السنة بستناه.»", "«لفّة… ولفّة… ولفّة. أربعين سنة بلفّ الكوز ده.»", "«الكنافة عايزة صاج سخن وإيد صبورة.»"] });
         if (time === "asr" || time === "pre") {
           out.push({ id: "omyoussef", cast: "omyoussef", name: "أم يوسف", face: "omyoussef", at: [70, 118, 1], say: [{ if: "at_bakery", t: "«ربنا يجبر بخاطرك يا {ابني|بنتي}.»" }, { t: "«الطابور طويل النهارده…»" }] });
           out.push({ cast: "w2", name: "أم كريم", at: [76, 134, 1], queue: true, say: ["«خمسة أرغفة بس يا عم حسن الله يخليك.»"] });
           out.push({ cast: "m6", name: "عم رمضان", at: [82, 150, 1], queue: true, say: ["«الطابور ده مش بيتحرك ليه؟»"] });
           if (time === "pre") out.push({ cast: "k5", name: "حودة", at: [86, 164, 1], queue: true, say: ["«ماما قالت عشرة… ولا خمستاشر؟»"] });
         }
-        if (time === "night") out.push({ cast: "w5", name: "أم سمير", at: [74, 120, 1], say: ["«العيش ده للسحور. مفيش أحلى من فول وعيش سخن الساعة ٣.»"] });
+        if (time === "night") out.push({ cast: "w5", name: "أم نادية", at: [74, 120, 1], say: ["«حجزت عيش السحور من دلوقتي. الساعة ٢ هبعت الولد ياخده.»"] });
         return out;
       },
       state: { notes: 0 }
@@ -728,7 +773,7 @@
       pray: { imam: [116, 102], rows: [124, 148, 172], women: [214, 238], xs: [38, 60, 82, 104, 128, 150, 172, 194] },
       people: function (time) {
         if (time === "night") {
-          var men = ["m2", "m7", "m3", "m1", "m4", "m5", "m6", "m8", "k1", "k3", "fawzy", "maalem", "bashir", "sayed", "m2", "m7", "hassan", "m3", "m6", "k5"];
+          var men = ["m2", "m7", "m3", "m1", "m4", "m5", "m6", "m8", "k1", "k3", "m4", "m1", "m8", "m5", "m2", "m7", "m6", "m3", "m4", "k5"];
           var out = [{ id: "sheikh", cast: "sheikh", name: "الشيخ عبد الله", at: [116, 102, 1], pray: "imam", say: [{ t: "«تقبّل الله منا ومنكم.»" }] }], n = 0;
           [124, 148, 172].forEach(function (y, row) {
             [38, 60, 82, 104, 128, 150, 172, 194].forEach(function (x) {
@@ -747,13 +792,13 @@
           return out;
         }
         if (time === "maghrib") return [
-          { cast: "m2", name: "عم فتحي", at: [70, 140, 1, "kneel"], say: ["«فطرنا على تمرة ونزلنا نصلي. الأكل مش هيطير.»"] },
+          { cast: "m2", name: "عم فتحي", at: [70, 140, 1, "kneel"], say: ["«فطرنا على تمرة ونزلنا نصلي. الأكل مستنينا.»"] },
           { cast: "m7", name: "الحاج سليمان", at: [150, 132, 1, "kneel"], say: ["«تقبّل الله.»"] },
           { cast: "w3", name: "الحاجة فاطمة", at: [140, 232, 1, "kneel"], say: ["«تقبّل الله يا {حبيبي|حبيبتي}.»"] }];
         return [
           { id: "sheikh", cast: "sheikh", name: "الشيخ عبد الله", at: [100, 118, 0, "sit"], say: [{ t: "«أهلًا يا {ابني|بنتي}. الجامع بيتك.»" }, { t: "«التراويح بعد العشا، {متتأخرش|متتأخريش}.»" }] },
-          { cast: "m7", name: "الحاج سليمان", at: [178, 192, 1, "kneel"], say: ["«أنا بقرأ جزء كل يوم. الختمة يوم ٢٩ إن شاء الله.»"] },
-          { cast: "m2", name: "عم فتحي", at: [24, 162, 0, "sit"], sleep: true, say: ["«…زززز… رمضان كريم… زززز»"] },
+          { cast: "m7", name: "الحاج سليمان", at: [178, 192, 1, "kneel"], say: ["«بقرأ جزء وشوية كل يوم. الختمة يوم ٢٩ إن شاء الله.»"] },
+          { cast: "m5", name: "دكتور هشام", at: [24, 162, 0, "sit"], sleep: true, say: ["«…زززز… رمضان كريم… زززز»"] },
           { cast: "w3", name: "الحاجة فاطمة", at: [60, 234, 1, "kneel"], say: ["«بقرأ جزء عمّ للمرة الألف. كل مرة بلاقي فيه حاجة جديدة.»", "«الجامع ده اتجوزت فيه، وجوّزت فيه ولادي.»"] },
           { cast: "w1", name: "أم سعاد", at: [150, 230, 0, "sit"], say: ["«بنيجي من بدري عشان نلحق مكان في التراويح.»"] }];
       },
@@ -776,7 +821,7 @@
       seed: 4
     });
     return {
-      id: "koshari", name: "كشري أبو ياسر", sub: "الدقة والشطة على الحساب", W: W, HGT: HG, ground: s.c, bed: "koshariIn", wall: WALL,
+      id: "koshari", name: "كشري أبو ياسر", sub: "الدقة والشطة ببلاش", W: W, HGT: HG, ground: s.c, bed: "koshariIn", wall: WALL,
       props: [
         { k: "kosharyBar", o: { w: 110 }, x: 56, y: 96, block: [110, 8], steam: [12, -30] },
         { k: "marbleTable", o: { set: 0 }, x: 18, y: 128, block: [16, 5], id: "t1", setBy: { maghrib: 1, night: 1 } },
@@ -827,7 +872,8 @@
         var seats = [[10, 126, 3], [38, 126, 2], [10, 158, 3], [38, 158, 2], [78, 136, 3], [106, 136, 2], [130, 162, 3], [158, 162, 2]];
         var who = ["m1", "w4", "m3", "k3", "m6", "w5", "m8", "k5"], names = ["حمادة", "أم هاني", "الأستاذ عادل", "عمر", "عم رمضان", "أم سمير", "أشرف", "حودة"];
         var lines = ["«ده أحلى كشري في مصر. أنا مسافر كتير وعارف.»", "«{دوق|دوقي} الدقة دي… نار!»", "«الصيام كان طويل النهارده.»", "«ماما قالت طبق صغير. أنا طلبت كبير.»"];
-        if (time === "maghrib" || time === "night") seats.forEach(function (st, i) { out.push({ cast: who[i], name: names[i], at: [st[0] + 4, st[1] - 1, st[2], "sit"], say: [lines[i % 4]] }); });
+        // at night the people named here are out on the hara (the café, the queue), so the diners are strangers then
+        if (time === "maghrib" || time === "night") seats.forEach(function (st, i) { out.push({ cast: who[i], name: time === "night" ? (who[i].charAt(0) === "w" ? "زبونة" : who[i].charAt(0) === "k" ? "عيل صغير" : "زبون") : names[i], at: [st[0] + 4, st[1] - 1, st[2], "sit"], say: [lines[i % 4]] }); });
         if (time === "night") { out.push({ cast: "m7", name: "الحاج سليمان", at: [60, 118, 1], say: ["«واحد كشري تيك أواي، وزوّد البصل.»"] }); out.push({ cast: "k6", name: "سلمى", at: [124, 120, 1], say: ["«بابا قال أطلب طبق ليا لوحدي!»"] }); }
         var take = ["«تلات علب تيك أواي للفطار، الله يكرمك.»", "«ريحة البصل دي امتحان للصايم.»", "«أنا جاي آخد طلب ماما بس… والله.»"];
         if (time === "pre") [[68, 112], [88, 114], [112, 112]].forEach(function (q, i) { out.push({ cast: ["w2", "m5", "k1"][i], name: ["أم كريم", "دكتور هشام", "زياد"][i], at: [q[0], q[1], 1], say: [take[i]] }); });
@@ -884,7 +930,7 @@
       spawn: { hara: [88, 158, 1] },
       people: function (time) {
         var out = [{ cast: "kebabgi", name: "الكبابجي", at: [38, 86, 0], talk: [40, 104], say: [
-          { when: "asr", t: "«بنتبّل اللحمة من الضهر. الفحم بيولع ساعة المغرب بالظبط.»" },
+          { when: "asr", t: "«بنتبّل اللحمة من الضهر. الفحم لازم يبقى جاهز قبل المدفع.»" },
           { t: "«كفتة ولا كباب؟ ولا الاتنين؟ الاتنين.»" }] }];
         var fam = [[8, 132, 3, "m4"], [48, 132, 2, "w2"], [78, 126, 3, "m3"], [118, 126, 2, "w1"], [126, 158, 3, "m5"], [166, 158, 2, "w6"]];
         var kids = [[28, 146, 1, "k1"], [98, 140, 1, "k4"], [146, 172, 1, "k2"]];
@@ -892,7 +938,7 @@
           fam.forEach(function (f) { out.push({ cast: f[3], name: "الجيران", at: [f[0] + 4, f[1] - 1, f[2], "sit"], say: ["«{اتفضل|اتفضلي} معانا!»", "«الكفتة النهارده حكاية.»"] }); });
           kids.forEach(function (k) { out.push({ cast: k[3], name: "العيال", at: [k[0], k[1], k[2]], say: ["«أنا كلت ٣ أسياخ!»"] }); });
         }
-        if (time === "pre") [[70, 110, "m6"], [96, 112, "w4"]].forEach(function (q) { out.push({ cast: q[2], name: "زبون", at: [q[0], q[1], 1], say: ["«نص كيلو كفتة للفطار، وما تنساش العيش.»"] }); });
+        if (time === "pre") [[70, 110, "m6"], [96, 112, "w4"]].forEach(function (q) { out.push({ cast: q[2], name: q[2].charAt(0) === "w" ? "زبونة" : "زبون", at: [q[0], q[1], 1], say: ["«نص كيلو كفتة للفطار، وما تنساش العيش.»"] }); });
         return out;
       }
     };
@@ -959,7 +1005,7 @@
       people: function (time) {
         if (!open) return [];
         var out = [{ id: "saber", cast: "saberWork", name: "عم صابر", face: "saber_smile", at: [62, 112, 1], work: true, say: [{ t: "«{شايف|شايفة} الفوانيس دي؟ كل واحد فيها فيه حتة من الحارة. {خد|خدي} واحد، ده عليا.»" }] }];
-        if (time !== "maghrib") out.push({ cast: "k1", name: "زياد", at: [92, 124, 2], say: ["«عم صابر هيعلّمني أعمل فانوس!»"] }, { cast: "nourah", name: "نورة", face: "nourah", at: [36, 126, 3], say: ["«أنا اللي بلوّن الإزاز! شوف الأحمر ده!»"] });
+        if (time !== "maghrib") out.push({ cast: "k1", name: "زياد", at: [92, 124, 2], say: ["«عم صابر هيعلّمني أعمل فانوس!»"] }, { cast: "nourah", name: "نورة", face: "nourah", at: [36, 126, 3], say: ["«أنا اللي بلوّن الإزاز! {شوف|شوفي} الأحمر ده!»"] });
         return out;
       },
       state: { sign: open ? 0 : 1, lamp: open ? 1 : 0 }
@@ -1032,10 +1078,10 @@
       spawn: { home: [26, 180, 0], hara: [26, 180, 0] },
       people: function (time) {
         if (time === "night") return [
-          { id: "youssef", cast: "youssef+l", name: "يوسف", face: "youssef", at: [96, 140, 0], say: [{ t: "«السطوح فيه فوانيس كتير النهارده!»" }] },
+          { id: "youssef", cast: "youssef+l", name: "يوسف", face: "youssef", at: [96, 140, 0], say: [{ t: "«السطوح فيه فوانيس كتير الليلة!»" }] },
           { id: "nourah", cast: "nourah+l", name: "نورة", face: "nourah", at: [120, 142, 2], say: [{ t: "«فانوسي خشب مش بلاستيك! ده هيعيش لحد ما أكبر!»" }] },
           { cast: "k2+l", name: "جنى", at: [76, 156, 3], say: ["«وحوي يا وحوي، إيوحا!»"] },
-          { cast: "k3+l", name: "عمر", at: [140, 160, 2], say: ["«بص على الجامع من هنا! الفوانيس عاملة زي النجوم.»"] }];
+          { cast: "k3+l", name: "عمر", at: [140, 160, 2], say: ["«{بص|بصي} على الجامع من هنا! الفوانيس عاملة زي النجوم.»"] }];
         if (time === "asr" || time === "pre") return [{ cast: "k3", name: "عمر", at: [110, 130, 1], kite: true, say: ["«{شايف|شايفة} طيارتي؟ أعلى واحدة في الحارة!»"] }];
         return [];
       }
@@ -1051,7 +1097,7 @@
     steps: { room: "mosque", spot: "mosque" },
     koshari: { room: "koshari", spot: "koshari" },
     kebab: { room: "kebab", spot: "kebab" },
-    workshop: { room: "workshop", spot: "workshop", open: function (day, flags) { return day >= DAYS.workshopOpen || !!flags.workshop; }, shut: "الباب مقفول بقفل صدي، وعليه ورقة: «للبيع». عم صابر ما بيفتحش من شهور." }
+    workshop: { room: "workshop", spot: "workshop", open: function (day, flags) { return day >= DAYS.workshopOpen || !!flags.workshop; }, shut: "الباب مقفول بقفل مصدّي، وعليه ورقة: «للبيع». عم صابر ما فتحهاش من شهرين." }
   };
   var cache = {};
   H.rooms = {
